@@ -1,0 +1,71 @@
+# input file for disc setup routine
+
+# resolution
+                  np =      250000    ! number of gas particles
+            np_dust1 =       18181    ! number of large dust particles
+            np_dust2 =       18181    ! number of large dust particles
+            np_dust3 =       18181    ! number of large dust particles
+            np_dust4 =       18181    ! number of large dust particles
+            np_dust5 =       18181    ! number of large dust particles
+            np_dust6 =       18181    ! number of large dust particles
+
+# units
+           dist_unit =          au    ! distance unit (e.g. au,pc,kpc,0.1pc)
+           mass_unit =      solarm    ! mass unit (e.g. solarm,jupiterm,earthm)
+
+# central object(s)/potential
+            icentral =           1    ! use sink particles or external potential (0=potential,1=sinks)
+              nsinks =           1    ! number of sinks
+
+# options for central star
+                  m1 =       1.300    ! star mass
+               accr1 =       1.000    ! star accretion radius
+
+# oblateness
+            J2_body1 =       0.000    ! J2 moment (oblateness)
+
+# options for gas accretion disc
+         isetgas =           0    ! how to set gas density profile (0=total disc mass,1=mass within annulus,2=surface density normalisation,3=surface density at reference radius,4=minimum Toomre Q)
+       itapergas =           F    ! exponentially taper the outer disc profile
+      ismoothgas =           T    ! smooth inner disc
+           iwarp =           F    ! warp disc
+            R_in =       1.000    ! inner radius
+           R_ref =         10.    ! reference radius
+           R_out =        120.    ! outer radius
+          disc_m =       0.030    ! disc mass
+          pindex =       0.100    ! power law index of surface density sig=sig0*r^-p
+          qindex =       0.350    ! power law index of sound speed cs=cs0*r^-q
+         posangl =       0.000    ! position angle (deg)
+            incl =       0.000    ! inclination (deg)
+             H_R =       0.040    ! H/R at R=R_ref
+         alphaSS =       0.005    ! desired alphaSS
+
+# options for dust accretion disc
+      itaperdust =           F    ! exponentially taper the outer disc profile
+     ismoothdust =           T    ! smooth inner disc
+        R_indust =       1.000    ! inner radius
+       R_outdust =        120.    ! outer radius
+     pindex_dust =       0.100    ! p index
+     qindex_dust =       0.350    ! q index
+        H_R_dust =       0.040    ! H/R at R=R_ref
+
+# options for dust
+     dust_method =           1    ! dust method (1=one fluid,2=two fluid,3=Hybrid)
+     dust_to_gas =       0.010    ! dust to gas ratio
+   ndusttypesinp =           1    ! number of grain sizes
+ ilimitdustfluxinp =           T    ! limit dust diffusion using Ballabio et al. (2018)
+      grainsizeinp =       0.100    ! grain size (in cm)
+      graindensinp =       3.000    ! intrinsic grain density (in g/cm^3)
+          isetdust =           0    ! how to set dust density profile (0=equal to gas,1=custom,2=equal to gas with cutoffs)
+
+# set planets
+        nplanets =           {{NUM_PLANETS}}    ! number of planets
+
+{{PLANET_CONFIGURATIONS}}
+
+# thermal stratification
+           discstrat =           0    ! stratify disc? (0=no,1=yes)
+
+# timestepping
+         norbits =          10    ! maximum number of outer planet orbits
+          deltat =       0.100    ! output interval as fraction of orbital period
