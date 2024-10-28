@@ -3,17 +3,17 @@
 The goal of this tool is to functionally generate n number of simulations (dustysgdiscs) within a viable parameter space.
 This is in order to realistically simulate the space of PPDs in space, without displaying bias toward any particular parameter, and yielding a normal distribution of sorts with respect to the most 'common' variety of PPDs based on characteristic physical parameters.
 
-=================
-++ THE SCRIPTS ++
-=================
+## =================
+## ++ THE SCRIPTS ++
+## =================
 
 `master-script.sh` is the main control script
 
 `ppd-physics.py` contains the PPD Generator class for generating parameters
 
-=================
-++ SETUP STEPS ++
-=================
+## =================
+## ++ SETUP STEPS ++
+## =================
 
 Create the job directory structure:
 
@@ -30,7 +30,7 @@ Make the scripts executable:
 
 Run the master script...
 
-Using default values (1000 simulations, /scratch/0_sink/ directory)
+Using default values (100 simulations, /scratch/0_sink/ directory)
 `$`./master-script.sh``
 
 Specifying number of simulations and output directory
