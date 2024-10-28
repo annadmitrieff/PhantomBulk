@@ -3,9 +3,9 @@
 # Description:
 # This script generates protoplanetary disk simulations and submits them to Sapelo2.
 
-# ====================
-# PARAMETERS FOR JOB |
-# ====================
+# ========================
+# ++ PARAMETERS FOR JOB ++
+# ========================
 
 # Default Number of simulations to generate
 DEFAULT_N_SIMS=100
@@ -28,7 +28,7 @@ N_SIMS=${N_SIMS:-$DEFAULT_N_SIMS}
 OUTPUT_DIR=${OUTPUT_DIR:-$DEFAULT_OUTPUT_DIR}
 
 # Path to the main Python script
-PYTHON_SCRIPT="/home/adm61595/CHLab/1_HCA_PPDs/1_Code/3_RandomSims/ppd-physics.py"
+PYTHON_SCRIPT="/home/adm61595/CHLab/PhantomBulk/ppd-physics.py"
 
 # Ensure the Python script exists
 if [ ! -f "$PYTHON_SCRIPT" ]; then
@@ -36,12 +36,21 @@ if [ ! -f "$PYTHON_SCRIPT" ]; then
     exit 1
 fi
 
-# Activates virtual environment
+# Activating Virtual Environment
 source /home/adm61595/Envs/PHANTOMEnv/bin/activate
+
+# Ensure necessary Python packages are installed
+REQUIRED_PKG=("numpy" "pandas" "plotly" "scipy")
+for pkg in "${REQUIRED_PKG[@]}"; do
+    if ! python -c "import $pkg" &> /dev/null; then
+        echo "Package '$pkg' not found. Installing..."
+        pip install "$pkg"
+    fi
+done
 
 # Run the main Python script to generate simulation configurations and job scripts
 echo "Generating $N_SIMS simulations in directory '$OUTPUT_DIR'..."
-python "$PYTHON_SCRIPT" "$N_SIMS" --output_dir "$OUTPUT_DIR"
+python3 "$PYTHON_SCRIPT" "$N_SIMS" --output_dir "$OUTPUT_DIR"
 
 # Check if the Python script executed successfully
 if [ $? -ne 0 ]; then
@@ -61,14 +70,47 @@ fi
 # Make sure submit_all.sh is executable
 chmod +x "$SUBMIT_ALL_SCRIPT"
 
-# Submit all jobs using submit_all.sh
-echo "Submitting all jobs in '$OUTPUT_DIR'..."
-bash "$SUBMIT_ALL_SCRIPT"
+# ===================================
+# ++ INTERACTIVE SUBMISSION PROMPT ++
+# ===================================
 
-# Check if jobs were submitted successfully
-if [ $? -ne 0 ]; then
-    echo "Error: Job submission failed!"
-    exit 1
-fi
+# Prompt the user to decide whether to submit all jobs
+echo ""
+echo "=============================================="
+echo "You have generated $N_SIMS simulations in '$OUTPUT_DIR'."
+echo "Would you like to submit all jobs now?"
+echo "It's recommended to verify the '.setup' and '.in' files before submission."
+echo "=============================================="
+while true; do
+    read -p "Do you want to execute 'submit_all.sh' and submit all jobs? [y/n]: " yn
+    case $yn in
+        [Yy]* )
+            # User chose to submit all jobs
+            echo ""
+            echo "Submitting all jobs in '$OUTPUT_DIR'..."
+            bash "$SUBMIT_ALL_SCRIPT"
+            
+            # Check if jobs were submitted successfully
+            if [ $? -ne 0 ]; then
+                echo "Error: Job submission failed!"
+                exit 1
+            fi
+            
+            echo "All simulations have been submitted successfully."
+            break
+            ;;
+        [Nn]* | "" )
+            # User chose not to submit jobs
+            echo ""
+            echo "Job submission skipped. You can verify the '.setup' and '.in' files in '$OUTPUT_DIR' before submitting manually."
+            echo "To submit all jobs later, execute the 'submit_all.sh' script in the output directory."
+            break
+            ;;
+        * )
+            # Invalid input; prompt again
+            echo "Please answer yes (y) or no (n)."
+            ;;
+    esac
+done
 
-echo "All simulations have been submitted successfully."
+exit 0
