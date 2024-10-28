@@ -1,19 +1,17 @@
-
+## ++ INFO ++
 
 The goal of this tool is to functionally generate n number of simulations (dustysgdiscs) within a viable parameter space.
 This is in order to realistically simulate the space of PPDs in space, without displaying bias toward any particular parameter, and yielding a normal distribution of sorts with respect to the most 'common' variety of PPDs based on characteristic physical parameters.
 
-## =================
 ## ++ THE SCRIPTS ++
-## =================
 
-`master-script.sh` is the main control script
+`master-script.sh` is the main control script.
 
-`ppd-physics.py` contains the PPD Generator class for generating parameters
+`ppd-physics.py` contains the PPD Generator class for generating parameters.
 
-## =================
+`post-process.sh` is a post-processing script for generating continuum images with MCFOST.
+
 ## ++ SETUP STEPS ++
-## =================
 
 Create the job directory structure:
 
@@ -38,3 +36,7 @@ Specifying number of simulations and output directory
 
 Using short flags
 `$`./master-script.sh -n 500 -d my_phantom_runs``
+
+Post-process your simulations (grabs 50th dump file):
+
+`sbatch post-process.sh`
