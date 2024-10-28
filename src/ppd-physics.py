@@ -292,7 +292,7 @@ class PhysicalPPDGenerator:
                                R_in: float, R_out: float) -> List[PlanetParameters]:
         # Generate physically consistent planetary system
         # Determine number of planets with limits
-        max_planets = min(4, int(disk_mass / 0.005))  # Reduced maximum number of planets
+        max_planets = min(4, int(disk_mass / 0.005))
         n_planets = np.random.randint(0, max_planets + 1)
 
         if n_planets == 0:
