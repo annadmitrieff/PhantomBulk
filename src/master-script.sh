@@ -11,7 +11,7 @@
 DEFAULT_N_SIMS=100
 
 # Default Output Directory
-DEFAULT_OUTPUT_DIR="/scratch/adm61595/adm61595/0_sink"
+DEFAULT_OUTPUT_DIR="/scratch/"
 
 # Parse command-line arguments for flexibility
 while [[ "$#" -gt 0 ]]; do
