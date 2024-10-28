@@ -1,15 +1,3 @@
-Yes, I can help adjust the LaTeX in your document to be GitHub Markdown compliant. The main changes involve:
-
-1. **Removing the outer triple backticks**: This ensures that your Markdown and LaTeX are processed correctly, as content within triple backticks is treated as code and not rendered.
-
-2. **Adjusting headers and anchor links**: To ensure that the Table of Contents links work properly, it's best to avoid using LaTeX or special characters in headers. This helps GitHub generate correct anchor links.
-
-3. **Ensuring LaTeX expressions are properly formatted**: GitHub supports LaTeX expressions enclosed in `$...$` for inline math and `$$...$$` for display math.
-
-Below is the adjusted document:
-
----
-
 # Protoplanetary Disk Simulation Toolkit Documentation
 
 ## Table of Contents
@@ -21,7 +9,7 @@ Below is the adjusted document:
   - [Temperature Profile](#temperature-profile)
   - [Aspect Ratio (H/R)](#aspect-ratio-hr)
   - [Dust Properties](#dust-properties)
-  - [Cooling Parameter (beta_cool)](#cooling-parameter-betacool)
+  - [Cooling Parameter (beta_cool)](#cooling-parameter-beta_cool)
   - [Planetary System Generation](#planetary-system-generation)
 - [Parameter Sampling Methods](#parameter-sampling-methods)
   - [Core and Tail Sampling](#core-and-tail-sampling)
@@ -51,13 +39,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
   The IMF is defined as:
 
-  $$
-  \xi(M) \propto
-  \begin{cases}
-    M^{-1.3}, & \text{if } M < 0.5\,M_\odot \\
-    M^{-2.3}, & \text{if } M \geq 0.5\,M_\odot
-  \end{cases}
-  $$
+  ![IMF Definition](https://latex.codecogs.com/png.latex?\xi(M)%20\propto%20%5Cbegin{cases}%20M^{-1.3},%20&%20%5Ctext%7Bif%20%7D%20M%20<%200.5\,M_%5Codot%20%5C%5C%20M^{-2.3},%20&%20%5Ctext%7Bif%20%7D%20M%20\geq%200.5\,M_%5Codot%20%5Cend{cases})
 
 **Implementation**:
 
@@ -77,9 +59,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 - **Disk-to-Star Mass Ratio**: The disk mass is sampled as a fraction of the stellar mass. Observations suggest a typical disk-to-star mass ratio of around **1%** [2][3].
 - **Surface Density Profile**: The surface density $\Sigma(R)$ follows a power-law profile:
 
-  $$
-  \Sigma(R) = \Sigma_0 \left( \frac{R}{R_{\text{ref}}} \right)^{-p}
-  $$
+  ![Surface Density Profile](https://latex.codecogs.com/png.latex?\Sigma(R)%20=%20\Sigma_0%20\left(\frac{R}{R_%7Bref%7D}\right)^{-p})
 
   where $p$ is the surface density power-law index, and $R_{\text{ref}}$ is a reference radius (usually 1 AU).
 
@@ -101,9 +81,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - The disk mass is calculated as:
 
-  $$
-  M_{\text{disk}} = f_{\text{disk}} \times M_\ast
-  $$
+  ![Disk Mass Calculation](https://latex.codecogs.com/png.latex?M_%7Bdisk%7D%20=%20f_%7Bdisk%7D%20\times%20M_%5Cast)
 
   where $f_{\text{disk}}$ is the disk-to-star mass ratio.
 
@@ -122,9 +100,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - The temperature profile follows a power-law:
 
-  $$
-  T(R) = T_0 \left( \frac{R}{R_{\text{ref}}} \right)^{q}
-  $$
+  ![Temperature Profile](https://latex.codecogs.com/png.latex?T(R)%20=%20T_0%20\left(\frac{R}{R_%7Bref%7D\right)^{q})
 
   where $T_0$ is the temperature at the reference radius $R_{\text{ref}}$, and $q$ is the temperature power-law index.
 
@@ -135,7 +111,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
   - **Mean (log)**: $\ln(300\,\text{K})$.
   - **Standard Deviation (log)**: 0.2.
   - **Minimum**: 150 K.
-
+  
 - **Temperature Power-law Index ($q$)**:
   - **Mean**: $-0.5$.
   - **Standard Deviation**: 0.1.
@@ -153,15 +129,11 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - The aspect ratio \(H/R\) is related to the sound speed \(c_s\) and the Keplerian orbital velocity \(v_{\text{orb}}\):
 
-  $$
-  \frac{H}{R} = \frac{c_s}{v_{\text{orb}}}
-  $$
+  ![Aspect Ratio](https://latex.codecogs.com/png.latex?\frac{H}{R}%20=%20\frac{c_s}{v_%7Borb%7D})
 
 - The sound speed \(c_s\) depends on the temperature:
 
-  $$
-  c_s = \sqrt{\frac{k_B T}{\mu m_H}}
-  $$
+  ![Sound Speed](https://latex.codecogs.com/png.latex?c_s%20=%20\sqrt{\frac{k_B%20T}{\mu%20m_H}})
 
   where \(k_B\) is the Boltzmann constant, \(\mu\) is the mean molecular weight, and \(m_H\) is the mass of a hydrogen atom.
 
@@ -206,9 +178,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - The **$\beta$-cooling** prescription from **Gammie (2001)** [4] is used:
 
-  $$
-  t_{\text{cool}} = \beta_{\text{cool}}\, \Omega^{-1}
-  $$
+  ![Beta Cooling](https://latex.codecogs.com/png.latex?t_%7Bcool%7D%20=%20\beta_%7Bcool%7D%2C%20\Omega^{-1})
 
   where \(t_{\text{cool}}\) is the cooling timescale, \(\beta_{\text{cool}}\) is a dimensionless cooling parameter, and \(\Omega\) is the orbital angular frequency.
 
@@ -339,5 +309,4 @@ The physical setup of the simulations is grounded in astrophysical observations 
 ### Extending the Toolkit
 
 - Users can extend the parameter ranges or modify the sampling methods to explore different regions of the parameter space.
-
 - Additional physics, such as magnetic fields or radiation pressure, can be incorporated by modifying the setup templates and parameter generation methods.
