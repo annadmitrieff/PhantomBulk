@@ -39,8 +39,14 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
   The IMF is defined as:
 
-  ![IMF Definition](https://latex.codecogs.com/png.latex?\xi(M)%20\propto%20%5Cbegin{cases}%20M^{-1.3},%20&%20%5Ctext%7Bif%20%7D%20M%20<%200.5\,M_%5Codot%20%5C%5C%20M^{-2.3},%20&%20%5Ctext%7Bif%20%7D%20M%20\geq%200.5\,M_%5Codot%20%5Cend{cases})
-
+  $$
+  \xi(M) \propto
+    \begin{cases}
+    M^{-1.3}, & \text{if } M < 0.5\,M_\odot \\
+    M^{-2.3}, & \text{if } M \geq 0.5\,M_\odot
+    \end{cases}
+  $$
+  
 **Implementation**:
 
 - The script samples stellar masses between **0.1 and 5 solar masses ($M_\odot$)**, reflecting the typical range of stellar masses for pre-main-sequence stars hosting protoplanetary disks.
@@ -59,7 +65,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 - **Disk-to-Star Mass Ratio**: The disk mass is sampled as a fraction of the stellar mass. Observations suggest a typical disk-to-star mass ratio of around **1%** [2][3].
 - **Surface Density Profile**: The surface density $\Sigma(R)$ follows a power-law profile:
 
-  ![Surface Density Profile](https://latex.codecogs.com/png.latex?\Sigma(R)%20=%20\Sigma_0%20\left(\frac{R}{R_%7Bref%7D}\right)^{-p})
+  ![Surface Density Profile](https://latex.codecogs.com/svg.image?\Sigma(R)=\Sigma_0(\dfrac{R}{R_{\text{ref}}})^{-p}M_{\text{disk}}=f_{\text{disk}}\times&space;M_\ast&space;)
 
   where $p$ is the surface density power-law index, and $R_{\text{ref}}$ is a reference radius (usually 1 AU).
 
@@ -81,7 +87,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - The disk mass is calculated as:
 
-  ![Disk Mass Calculation](https://latex.codecogs.com/png.latex?M_%7Bdisk%7D%20=%20f_%7Bdisk%7D%20\times%20M_%5Cast)
+  ![Disk Mass Calculation](https://latex.codecogs.com/svg.image?M_{\text{disk}}=f_{\text{disk}}\times&space;M_\ast)
 
   where $f_{\text{disk}}$ is the disk-to-star mass ratio.
 
@@ -100,7 +106,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - The temperature profile follows a power-law:
 
-  ![Temperature Profile](https://latex.codecogs.com/png.latex?T(R)%20=%20T_0%20\left(\frac{R}{R_%7Bref%7D\right)^{q})
+  ![Temperature Profile](https://latex.codecogs.com/svg.image?&space;T(R)=T_0(\frac{R}{R_{\text{ref}}})^{q})
 
   where $T_0$ is the temperature at the reference radius $R_{\text{ref}}$, and $q$ is the temperature power-law index.
 
@@ -127,15 +133,15 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 **Method**:
 
-- The aspect ratio \(H/R\) is related to the sound speed \(c_s\) and the Keplerian orbital velocity \(v_{\text{orb}}\):
+- The aspect ratio $H/R$ is related to the sound speed $c_s$ and the Keplerian orbital velocity $v_{\text{orb}}$:
 
-  ![Aspect Ratio](https://latex.codecogs.com/png.latex?\frac{H}{R}%20=%20\frac{c_s}{v_%7Borb%7D})
+  ![Aspect Ratio](https://latex.codecogs.com/svg.image?\frac{H}{R}=\frac{c_s}{v_{\text{orb}}})
 
-- The sound speed \(c_s\) depends on the temperature:
+- The sound speed $c_s$ depends on the temperature:
 
-  ![Sound Speed](https://latex.codecogs.com/png.latex?c_s%20=%20\sqrt{\frac{k_B%20T}{\mu%20m_H}})
+  ![Sound Speed](https://latex.codecogs.com/svg.image?c_s=\sqrt{\frac{k_B&space;T}{\mu&space;m_H}})
 
-  where \(k_B\) is the Boltzmann constant, \(\mu\) is the mean molecular weight, and \(m_H\) is the mass of a hydrogen atom.
+  where $k_B$ is the Boltzmann constant, $\mu$ is the mean molecular weight, and $m_H$ is the mass of a hydrogen atom.
 
 **Parameter Ranges**:
 
@@ -178,9 +184,9 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - The **$\beta$-cooling** prescription from **Gammie (2001)** [4] is used:
 
-  ![Beta Cooling](https://latex.codecogs.com/png.latex?t_%7Bcool%7D%20=%20\beta_%7Bcool%7D%2C%20\Omega^{-1})
+  ![Beta Cooling](https://latex.codecogs.com/svg.image?&space;t_{\text{cool}}=\beta_{\text{cool}}\,\Omega^{-1})
 
-  where \(t_{\text{cool}}\) is the cooling timescale, \(\beta_{\text{cool}}\) is a dimensionless cooling parameter, and \(\Omega\) is the orbital angular frequency.
+  where $t_{\text{cool}}$ is the cooling timescale, $\beta_{\text{cool}}$ is a dimensionless cooling parameter, and $\Omega$ is the orbital angular frequency.
 
 **Parameter Ranges**:
 
