@@ -1,3 +1,15 @@
+Yes, I can help adjust the LaTeX in your document to be GitHub Markdown compliant. The main changes involve:
+
+1. **Removing the outer triple backticks**: This ensures that your Markdown and LaTeX are processed correctly, as content within triple backticks is treated as code and not rendered.
+
+2. **Adjusting headers and anchor links**: To ensure that the Table of Contents links work properly, it's best to avoid using LaTeX or special characters in headers. This helps GitHub generate correct anchor links.
+
+3. **Ensuring LaTeX expressions are properly formatted**: GitHub supports LaTeX expressions enclosed in `$...$` for inline math and `$$...$$` for display math.
+
+Below is the adjusted document:
+
+---
+
 # Protoplanetary Disk Simulation Toolkit Documentation
 
 ## Table of Contents
@@ -9,19 +21,19 @@
   - [Temperature Profile](#temperature-profile)
   - [Aspect Ratio (H/R)](#aspect-ratio-hr)
   - [Dust Properties](#dust-properties)
-  - [Cooling Parameter ($\beta_{\text{cool}}$)](#cooling-parameter-beta_cool)
+  - [Cooling Parameter (beta_cool)](#cooling-parameter-betacool)
   - [Planetary System Generation](#planetary-system-generation)
 - [Parameter Sampling Methods](#parameter-sampling-methods)
   - [Core and Tail Sampling](#core-and-tail-sampling)
   - [Statistical Distributions](#statistical-distributions)
 - [References](#references)
-- [Additional Notes](#detailed-explanations-and-additional-notes)
+- [Detailed Explanations and Additional Notes](#detailed-explanations-and-additional-notes)
 
 ---
 
 ## Introduction
 
-PhantomBulk is designed to generate, run, and post-process simulations of protoplanetary disks (PPDs) using the **PHANTOM** and **MCFOST** software packages on high-performance computing (HPC) systems managed by SLURM.The simulations aim to produce physically realistic models of PPDs by sampling parameters based on empirical distributions from astronomical observations and theoretical considerations. This documentation provides an in-depth explanation of the physics involved, the methods used for parameter selection, and the rationale behind the choices made in the scripts.
+PhantomBulk is designed to generate, run, and post-process simulations of protoplanetary disks (PPDs) using the **PHANTOM** and **MCFOST** software packages on high-performance computing (HPC) systems managed by SLURM. The simulations aim to produce physically realistic models of PPDs by sampling parameters based on empirical distributions from astronomical observations and theoretical considerations. This documentation provides an in-depth explanation of the physics involved, the methods used for parameter selection, and the rationale behind the choices made in the scripts.
 
 ---
 
@@ -38,6 +50,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 - **Initial Mass Function (IMF)**: The stellar masses are sampled based on the **Kroupa IMF** [1], which is a broken power-law distribution commonly used to represent the mass distribution of stars formed in a cluster.
 
   The IMF is defined as:
+
   $$
   \xi(M) \propto
   \begin{cases}
@@ -63,9 +76,11 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 - **Disk-to-Star Mass Ratio**: The disk mass is sampled as a fraction of the stellar mass. Observations suggest a typical disk-to-star mass ratio of around **1%** [2][3].
 - **Surface Density Profile**: The surface density $\Sigma(R)$ follows a power-law profile:
+
   $$
   \Sigma(R) = \Sigma_0 \left( \frac{R}{R_{\text{ref}}} \right)^{-p}
   $$
+
   where $p$ is the surface density power-law index, and $R_{\text{ref}}$ is a reference radius (usually 1 AU).
 
 **Parameter Ranges**:
@@ -85,9 +100,11 @@ The physical setup of the simulations is grounded in astrophysical observations 
 **Implementation**:
 
 - The disk mass is calculated as:
+
   $$
   M_{\text{disk}} = f_{\text{disk}} \times M_\ast
   $$
+
   where $f_{\text{disk}}$ is the disk-to-star mass ratio.
 
 - $\Sigma_0$ is determined by integrating the surface density profile over the disk area to match the total disk mass.
@@ -104,9 +121,11 @@ The physical setup of the simulations is grounded in astrophysical observations 
 **Method**:
 
 - The temperature profile follows a power-law:
+
   $$
   T(R) = T_0 \left( \frac{R}{R_{\text{ref}}} \right)^{q}
   $$
+
   where $T_0$ is the temperature at the reference radius $R_{\text{ref}}$, and $q$ is the temperature power-law index.
 
 **Parameter Ranges**:
@@ -132,15 +151,19 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 **Method**:
 
-- The aspect ratio $H/R$ is related to the sound speed $c_s$ and the Keplerian orbital velocity $v_{\text{orb}}$:
+- The aspect ratio \(H/R\) is related to the sound speed \(c_s\) and the Keplerian orbital velocity \(v_{\text{orb}}\):
+
   $$
   \frac{H}{R} = \frac{c_s}{v_{\text{orb}}}
   $$
-- The sound speed $c_s$ depends on the temperature:
+
+- The sound speed \(c_s\) depends on the temperature:
+
   $$
   c_s = \sqrt{\frac{k_B T}{\mu m_H}}
   $$
-  where $k_B$ is the Boltzmann constant, $\mu$ is the mean molecular weight, and $m_H$ is the mass of a hydrogen atom.
+
+  where \(k_B\) is the Boltzmann constant, \(\mu\) is the mean molecular weight, and \(m_H\) is the mass of a hydrogen atom.
 
 **Parameter Ranges**:
 
@@ -175,17 +198,19 @@ The physical setup of the simulations is grounded in astrophysical observations 
 - The dust-to-gas ratio is set close to the interstellar medium (ISM) value of 1%.
 - Grain sizes and densities are sampled to represent typical dust grains found in protoplanetary disks.
 
-### Cooling Parameter ($\beta_{\text{cool}}$)
+### Cooling Parameter (beta_cool)
 
 **Purpose**: To model the disk's thermal evolution by setting the cooling timescale.
 
 **Method**:
 
 - The **$\beta$-cooling** prescription from **Gammie (2001)** [4] is used:
+
   $$
   t_{\text{cool}} = \beta_{\text{cool}}\, \Omega^{-1}
   $$
-  where $t_{\text{cool}}$ is the cooling timescale, $\beta_{\text{cool}}$ is a dimensionless cooling parameter, and $\Omega$ is the orbital angular frequency.
+
+  where \(t_{\text{cool}}\) is the cooling timescale, \(\beta_{\text{cool}}\) is a dimensionless cooling parameter, and \(\Omega\) is the orbital angular frequency.
 
 **Parameter Ranges**:
 
@@ -316,5 +341,3 @@ The physical setup of the simulations is grounded in astrophysical observations 
 - Users can extend the parameter ranges or modify the sampling methods to explore different regions of the parameter space.
 
 - Additional physics, such as magnetic fields or radiation pressure, can be incorporated by modifying the setup templates and parameter generation methods.
-
----
