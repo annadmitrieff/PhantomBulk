@@ -1,6 +1,4 @@
-Below are further explanations of the physical setup, parameter choices, statistical methods, and references to relevant literature that underpin the simulation toolkit. The aim is to help users understand the scientific basis of the simulations and to facilitate customization for specific research needs.
-
----
+# Protoplanetary Disk Simulation Toolkit Documentation
 
 ## Table of Contents
 
@@ -11,20 +9,13 @@ Below are further explanations of the physical setup, parameter choices, statist
   - [Temperature Profile](#temperature-profile)
   - [Aspect Ratio (H/R)](#aspect-ratio-hr)
   - [Dust Properties](#dust-properties)
-  - [Cooling Parameter (\(\beta_{\text{cool}}\))](#cooling-parameter-beta_cool)
+  - [Cooling Parameter ($\beta_{\text{cool}}$)](#cooling-parameter-beta_cool)
   - [Planetary System Generation](#planetary-system-generation)
 - [Parameter Sampling Methods](#parameter-sampling-methods)
   - [Core and Tail Sampling](#core-and-tail-sampling)
   - [Statistical Distributions](#statistical-distributions)
-- [Script Explanations](#script-explanations)
-  - [`ppd-physics.py`](#ppd-physicspy)
-  - [`master-script.sh`](#master-scriptsh)
-  - [`post-process.sh`](#post-processsh)
-- [Usage Instructions](#usage-instructions)
 - [References](#references)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
+- [Additional Notes](#detailed-explanations-and-additional-notes)
 
 ---
 
@@ -45,20 +36,20 @@ The physical setup of the simulations is grounded in astrophysical observations 
 **Method**:
 
 - **Initial Mass Function (IMF)**: The stellar masses are sampled based on the **Kroupa IMF** [1], which is a broken power-law distribution commonly used to represent the mass distribution of stars formed in a cluster.
-  
+
   The IMF is defined as:
-  \[
+  $$
   \xi(M) \propto
   \begin{cases}
     M^{-1.3}, & \text{if } M < 0.5\,M_\odot \\
     M^{-2.3}, & \text{if } M \geq 0.5\,M_\odot
   \end{cases}
-  \]
+  $$
 
 **Implementation**:
 
-- The script samples stellar masses between **0.1 and 5 solar masses (\(M_\odot\))**, reflecting the typical range of stellar masses for pre-main-sequence stars hosting protoplanetary disks.
-- The sampling distinguishes between low-mass and high-mass segments based on the mass break at **0.5 \(M_\odot\)**.
+- The script samples stellar masses between **0.1 and 5 solar masses ($M_\odot$)**, reflecting the typical range of stellar masses for pre-main-sequence stars hosting protoplanetary disks.
+- The sampling distinguishes between low-mass and high-mass segments based on the mass break at **0.5 $M_\odot$**.
 
 **References**:
 
@@ -71,35 +62,35 @@ The physical setup of the simulations is grounded in astrophysical observations 
 **Method**:
 
 - **Disk-to-Star Mass Ratio**: The disk mass is sampled as a fraction of the stellar mass. Observations suggest a typical disk-to-star mass ratio of around **1%** [2][3].
-- **Surface Density Profile**: The surface density \(\Sigma(R)\) follows a power-law profile:
-  \[
+- **Surface Density Profile**: The surface density $\Sigma(R)$ follows a power-law profile:
+  $$
   \Sigma(R) = \Sigma_0 \left( \frac{R}{R_{\text{ref}}} \right)^{-p}
-  \]
-  where \(p\) is the surface density power-law index, and \(R_{\text{ref}}\) is a reference radius (usually 1 AU).
+  $$
+  where $p$ is the surface density power-law index, and $R_{\text{ref}}$ is a reference radius (usually 1 AU).
 
 **Parameter Ranges**:
 
 - **Disk Mass Fraction**:
   - **Core Range**: 0.5% to 5% of stellar mass.
   - **Tail Range**: 0.1% to 10% of stellar mass.
-- **Surface Density Power-law Index (\(p\))**:
+- **Surface Density Power-law Index ($p$)**:
   - Typical values between **0.5 and 1.5** [2].
-- **Inner Radius (\(R_{\text{in}}\))**:
+- **Inner Radius ($R_{\text{in}}$)**:
   - **Core Range**: 0.1 to 1 AU.
   - **Tail Range**: 0.05 to 5 AU.
-- **Outer Radius (\(R_{\text{out}}\))**:
+- **Outer Radius ($R_{\text{out}}$)**:
   - **Core Range**: 30 to 100 AU.
   - **Tail Range**: 20 to 300 AU.
 
 **Implementation**:
 
 - The disk mass is calculated as:
-  \[
-  M_{\text{disk}} = f_{\text{disk}} \times M_{\ast}
-  \]
-  where \(f_{\text{disk}}\) is the disk-to-star mass ratio.
+  $$
+  M_{\text{disk}} = f_{\text{disk}} \times M_\ast
+  $$
+  where $f_{\text{disk}}$ is the disk-to-star mass ratio.
 
-- \(\Sigma_0\) is determined by integrating the surface density profile over the disk area to match the total disk mass.
+- $\Sigma_0$ is determined by integrating the surface density profile over the disk area to match the total disk mass.
 
 **References**:
 
@@ -113,21 +104,21 @@ The physical setup of the simulations is grounded in astrophysical observations 
 **Method**:
 
 - The temperature profile follows a power-law:
-  \[
+  $$
   T(R) = T_0 \left( \frac{R}{R_{\text{ref}}} \right)^{q}
-  \]
-  where \(T_0\) is the temperature at the reference radius \(R_{\text{ref}}\), and \(q\) is the temperature power-law index.
+  $$
+  where $T_0$ is the temperature at the reference radius $R_{\text{ref}}$, and $q$ is the temperature power-law index.
 
 **Parameter Ranges**:
 
-- **Temperature at 1 AU (\(T_0\))**:
+- **Temperature at 1 AU ($T_0$)**:
   - Mean value adjusted based on stellar mass.
-  - **Mean (log)**: \(\ln(300\,\text{K})\).
+  - **Mean (log)**: $\ln(300\,\text{K})$.
   - **Standard Deviation (log)**: 0.2.
   - **Minimum**: 150 K.
 
-- **Temperature Power-law Index (\(q\))**:
-  - **Mean**: \(-0.5\).
+- **Temperature Power-law Index ($q$)**:
+  - **Mean**: $-0.5$.
   - **Standard Deviation**: 0.1.
 
 **Implementation**:
@@ -141,22 +132,22 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 **Method**:
 
-- The aspect ratio \(H/R\) is related to the sound speed \(c_s\) and the Keplerian orbital velocity \(v_{\text{orb}}\):
-  \[
+- The aspect ratio $H/R$ is related to the sound speed $c_s$ and the Keplerian orbital velocity $v_{\text{orb}}$:
+  $$
   \frac{H}{R} = \frac{c_s}{v_{\text{orb}}}
-  \]
-- The sound speed \(c_s\) depends on the temperature:
-  \[
+  $$
+- The sound speed $c_s$ depends on the temperature:
+  $$
   c_s = \sqrt{\frac{k_B T}{\mu m_H}}
-  \]
-  where \(k_B\) is the Boltzmann constant, \(\mu\) is the mean molecular weight, and \(m_H\) is the mass of a hydrogen atom.
+  $$
+  where $k_B$ is the Boltzmann constant, $\mu$ is the mean molecular weight, and $m_H$ is the mass of a hydrogen atom.
 
 **Parameter Ranges**:
 
-- **Aspect Ratio (\(H/R\))**:
+- **Aspect Ratio ($H/R$)**:
   - **Core Range**: 0.08 to 0.15.
   - **Tail Range**: 0.05 to 0.25.
-- **Mean Molecular Weight (\(\mu\))**: 2.34 (typical for molecular hydrogen).
+- **Mean Molecular Weight ($\mu$)**: 2.34 (typical for molecular hydrogen).
 
 **Implementation**:
 
@@ -184,21 +175,21 @@ The physical setup of the simulations is grounded in astrophysical observations 
 - The dust-to-gas ratio is set close to the interstellar medium (ISM) value of 1%.
 - Grain sizes and densities are sampled to represent typical dust grains found in protoplanetary disks.
 
-### Cooling Parameter (\(\beta_{\text{cool}}\))
+### Cooling Parameter ($\beta_{\text{cool}}$)
 
 **Purpose**: To model the disk's thermal evolution by setting the cooling timescale.
 
 **Method**:
 
-- The **\(\beta\)-cooling** prescription from **Gammie (2001)** [4] is used:
-  \[
-  t_{\text{cool}} = \beta_{\text{cool}} \Omega^{-1}
-  \]
-  where \(t_{\text{cool}}\) is the cooling timescale, \(\beta_{\text{cool}}\) is a dimensionless cooling parameter, and \(\Omega\) is the orbital angular frequency.
+- The **$\beta$-cooling** prescription from **Gammie (2001)** [4] is used:
+  $$
+  t_{\text{cool}} = \beta_{\text{cool}}\, \Omega^{-1}
+  $$
+  where $t_{\text{cool}}$ is the cooling timescale, $\beta_{\text{cool}}$ is a dimensionless cooling parameter, and $\Omega$ is the orbital angular frequency.
 
 **Parameter Ranges**:
 
-- **Cooling Parameter (\(\beta_{\text{cool}}\))**:
+- **Cooling Parameter ($\beta_{\text{cool}}$)**:
   - **Core Range**: 30 to 50.
   - **Tail Range**: 20 to 100.
   - **Minimum Value**: 30 (to prevent excessive cooling that could lead to artificial fragmentation).
@@ -224,10 +215,10 @@ The physical setup of the simulations is grounded in astrophysical observations 
 **Parameter Ranges**:
 
 - **Planet Mass**:
-  - Minimum: 0.1 Jupiter masses (\(M_{\text{Jup}}\)).
-  - Maximum: 10 \(M_{\text{Jup}}\).
+  - Minimum: 0.1 Jupiter masses ($M_{\text{Jup}}$).
+  - Maximum: 10 $M_{\text{Jup}}$.
 - **Orbital Radius**:
-  - Within the disk boundaries, avoiding the immediate vicinity of \(R_{\text{in}}\) and \(R_{\text{out}}\).
+  - Within the disk boundaries, avoiding the immediate vicinity of $R_{\text{in}}$ and $R_{\text{out}}$.
 - **Inclination**:
   - Sampled from a Rayleigh distribution with a maximum of 15 degrees.
 
@@ -267,7 +258,7 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 **Temperature and Aspect Ratio**:
 
-- **Normal Distribution**: For the logarithm of \(T_0\) and \(q\), reflecting the scatter observed in disk temperatures.
+- **Normal Distribution**: For the logarithm of $T_0$ and $q$, reflecting the scatter observed in disk temperatures.
 
 **Planetary Parameters**:
 
@@ -296,27 +287,31 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 ---
 
-### Additional Notes
+**Note**: Replace placeholder paths, emails, and usernames in the scripts and documentation with your actual details. Always ensure compliance with your HPC system's policies and guidelines when running simulations.
 
-#### Physical Constraints and Validation
+---
 
-- **Disk Stability**: The simulations ensure that the Toomre \(Q\) parameter remains above critical values to avoid unphysical fragmentation. The aspect ratio and cooling parameters are adjusted accordingly.
-  
-- **Parameter Correlations**: Certain parameters are not independently sampled but are correlated based on physical laws. For example, the aspect ratio \(H/R\) is computed from the temperature profile and stellar mass.
+## Detailed Explanations and Additional Notes
 
-#### Computational Considerations
+### Physical Constraints and Validation
+
+- **Disk Stability**: The simulations ensure that the Toomre $Q$ parameter remains above critical values to avoid unphysical fragmentation. The aspect ratio and cooling parameters are adjusted accordingly.
+
+- **Parameter Correlations**: Certain parameters are not independently sampled but are correlated based on physical laws. For example, the aspect ratio $H/R$ is computed from the temperature profile and stellar mass.
+
+### Computational Considerations
 
 - **Limitations on Planet Numbers**: The maximum number of planets is limited to manage computational resources and reflect observed planetary systems.
 
 - **Execution of External Software**: The scripts assume that PHANTOM and MCFOST are properly installed and accessible. Users may need to adjust paths and environment variables.
 
-#### Statistical Sampling
+### Statistical Sampling
 
 - **Random Seed**: A seed is set (`seed=42`) for reproducibility. Users can change or remove the seed for different random samples.
 
 - **Rejection Sampling**: If generated parameters fail validation, the script retries up to a maximum number of attempts to prevent infinite loops.
 
-#### Extending the Toolkit
+### Extending the Toolkit
 
 - Users can extend the parameter ranges or modify the sampling methods to explore different regions of the parameter space.
 
