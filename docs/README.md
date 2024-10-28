@@ -29,12 +29,15 @@ Make the scripts executable:
 Run the master script...
 
 Using default values (100 simulations, /scratch/0_sink/ directory)
+
 `$./master-script.sh`
 
 Specifying number of simulations and output directory
+
 `$./master-script.sh --n_sims 500 --output_dir my_phantom_runs`
 
 Using short flags
+
 `$./master-script.sh -n 500 -d my_phantom_runs`
 
 Post-process your simulations (grabs 50th dump file):
