@@ -28,7 +28,7 @@ N_SIMS=${N_SIMS:-$DEFAULT_N_SIMS}
 OUTPUT_DIR=${OUTPUT_DIR:-$DEFAULT_OUTPUT_DIR}
 
 # Path to the main Python script
-PYTHON_SCRIPT="/home/adm61595/CHLab/PhantomBulk/ppd-physics.py"
+PYTHON_SCRIPT="/home/adm61595/CHLab/PhantomBulk/src/ppd-physics.py"
 
 # Ensure the Python script exists
 if [ ! -f "$PYTHON_SCRIPT" ]; then

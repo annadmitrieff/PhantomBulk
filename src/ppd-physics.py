@@ -70,7 +70,7 @@ class PPDParameters:
 
 def sample_parameter(core_range: Tuple[float, float],
                      tail_range: Tuple[float, float],
-                     tail_probability: float = 0.05) -> float:
+                     tail_probability: float = 0.1) -> float:
     """
     Sample a parameter with a probability to select from the tail range.
 
@@ -172,8 +172,8 @@ class PhysicalPPDGenerator:
                 'tail': (1.5, 3.5)
             },
             'beta_cool': {
-                'core': (30, 50),      # Increased minimum to 30
-                'tail': (20, 100)      # Adjusted minimum to 20
+                'core': (5, 50),      # Increased minimum to 30
+                'tail': (1, 100)      # Adjusted minimum to 20
             },
             'J2_body1': {
                 'core': (0.0, 0.01),
@@ -292,7 +292,7 @@ class PhysicalPPDGenerator:
                                R_in: float, R_out: float) -> List[PlanetParameters]:
         # Generate physically consistent planetary system
         # Determine number of planets with limits
-        max_planets = min(4, int(disk_mass / 0.005))
+        max_planets = min(6, int(disk_mass / 0.005))
         n_planets = np.random.randint(0, max_planets + 1)
 
         if n_planets == 0:
@@ -603,7 +603,7 @@ def generate_phantom_input(params: PPDParameters, output_dir: Path, sim_id: int,
     """Generate PHANTOM setup file, run phantomsetup, modify .in, and create submission script."""
 
     # Step 1: Copy `phantom` and `phantomsetup` executables
-    src_dir = Path("/home/adm61595/CHLab/PhantomBulk/setup/")
+    src_dir = Path("/home/adm61595/CHLab/PhantomBulk/phantom/")
     executables = ["phantom", "phantomsetup"]
     for exe in executables:
         src_path = src_dir / exe
@@ -708,7 +708,7 @@ def main():
 
     # Initialize PHANTOMFileManager with the setup template only
     current_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()
-    setup_template_path = current_dir / 'setup/dustysgdisc.setup'
+    setup_template_path = current_dir / 'dustysgdisc.setup'
 
     try:
         file_manager = PHANTOMFileManager(str(setup_template_path))
@@ -753,6 +753,7 @@ def main():
         param_dict = asdict(params)
         param_dict['simulation_id'] = i
         # Convert planets to list of dictionaries
+        param_dict['n_planets'] = len(params.planets)
         param_dict['planets'] = str([asdict(planet) for planet in params.planets]) if params.planets else ''
         param_records.append(param_dict)
 
@@ -760,9 +761,9 @@ def main():
         if (i+1) % 100 == 0 or (i+1) == n_sims:
             logging.info(f"Generated {i+1}/{n_sims} simulations")
 
-    # Save parameters to TSV
+    # Save parameters to CSV
     df = pd.DataFrame(param_records)
-    df.to_tsv(output_dir / 'parameter_database.tsv', index=False)
+    df.to_csv(output_dir / 'parameter_database.csv', index=False)
 
     # Summary output
     logging.info(f"\nGenerated {len(param_records)} disc configurations")
