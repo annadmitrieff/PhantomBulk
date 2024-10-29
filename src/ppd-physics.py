@@ -760,9 +760,9 @@ def main():
         if (i+1) % 100 == 0 or (i+1) == n_sims:
             logging.info(f"Generated {i+1}/{n_sims} simulations")
 
-    # Save parameters to CSV
+    # Save parameters to TSV
     df = pd.DataFrame(param_records)
-    df.to_csv(output_dir / 'parameter_database.csv', index=False)
+    df.to_tsv(output_dir / 'parameter_database.tsv', index=False)
 
     # Summary output
     logging.info(f"\nGenerated {len(param_records)} disc configurations")
