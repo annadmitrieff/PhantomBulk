@@ -109,71 +109,71 @@ class PhysicalPPDGenerator:
         # Disk properties from surveys (e.g., Andrews et al. 2010, Ansdell et al. 2016)
         self.disk_params = {
             'mass_ratio_mean': np.log(0.01),  # Mean log disk-to-star mass ratio
-            'mass_ratio_std': 0.5,            # Scatter in log mass ratio
+            'mass_ratio_std': 0.8,            # Scatter in log mass ratio
             'size_mass_slope': 0.5,           # Power-law index for R_out vs M_disk
-            'size_mass_scatter': 0.2          # Scatter in size-mass relation
+            'size_mass_scatter': 0.3          # Scatter in size-mass relation
         }
 
         # Temperature profile parameters
         self.temp_params = {
-            'T0_mean': np.log(300),   # Mean log temperature at 1 AU
-            'T0_std': 0.2,            # Scatter in log temperature
+            'T0_mean': np.log(250),   # Mean log temperature at 1 AU
+            'T0_std': 0.3,            # Scatter in log temperature
             'q_mean': -0.5,           # Mean temperature power-law index
-            'q_std': 0.1              # Scatter in temperature index
+            'q_std': 0.15             # Scatter in temperature index
         }
-        self.T0_min = 150  # Increased minimum temperature to 150 K
-        self.H_R_min = 0.05  # Minimum aspect ratio
-        self.H_R_max = 0.2   # Maximum aspect ratio
+        self.T0_min = 30     # Minimum Temperature
+        self.H_R_min = 0.03  # Minimum aspect ratio
+        self.H_R_max = 0.25  # Maximum aspect ratio
 
         # Define core and tail ranges for each parameter
         self.parameter_ranges = {
             'm1': {
-                'core': (0.2, 2.0),
-                'tail': (0.1, 3.0)
+                'core': (0.1, 3.0),
+                'tail': (0.08, 5.0)
             },
             'accr1': {
-                'core': (0.05, 0.1),  # Reduced accretion radius
-                'tail': (0.02, 0.15)
+                'core': (0.02, 0.15),  # Reduced accretion radius
+                'tail': (0.01, 0.2)
             },
             'disc_m_fraction': {
+                'core': (0.001, 0.1),
+                'tail': (0.0005, 0.2)
+            },
+            'R_in': {
+                'core': (0.05, 2.0),
+                'tail': (0.02, 5.0)
+            },
+            'R_out': {
+                'core': (30, 500),
+                'tail': (20, 1000)
+            },
+            'H_R': {
+                'core': (0.03, 0.2),
+                'tail': (0.02, 0.25)
+            },
+            'pindex': {
+                'core': (-0.5, 2.0),  # Typical range for pindex
+                'tail': (-1.0, 2.5)
+            },
+            'qindex': {
+                'core': (-0.75, -0.25),
+                'tail': (-1.0, -0.1)
+            },
+            'dust_to_gas': {
                 'core': (0.005, 0.05),
                 'tail': (0.001, 0.1)
             },
-            'R_in': {
-                'core': (0.1, 1.0),
-                'tail': (0.05, 5.0)
-            },
-            'R_out': {
-                'core': (30, 100),
-                'tail': (20, 300)
-            },
-            'H_R': {
-                'core': (0.08, 0.15),
-                'tail': (0.05, 0.25)
-            },
-            'pindex': {
-                'core': (0.5, 1.5),  # Typical range for pindex
-                'tail': (0.5, 1.5)
-            },
-            'qindex': {
-                'core': (-0.7, -0.3),
-                'tail': (-0.9, -0.1)
-            },
-            'dust_to_gas': {
-                'core': (0.01, 0.02),
-                'tail': (0.005, 0.03)
-            },
             'grainsize': {
-                'core': (0.001, 0.1),
-                'tail': (0.001, 1.0)
+                'core': (0.0001, 1.0),
+                'tail': (0.00001, 10.0)
             },
             'graindens': {
-                'core': (2.0, 3.5),
-                'tail': (1.5, 3.5)
+                'core': (1.5, 4.0),
+                'tail': (1.0, 5.0)
             },
             'beta_cool': {
-                'core': (5, 50),      # Increased minimum to 30
-                'tail': (1, 100)      # Adjusted minimum to 20
+                'core': (5, 50),      
+                'tail': (1, 100)     
             },
             'J2_body1': {
                 'core': (0.0, 0.01),
@@ -199,7 +199,7 @@ class PhysicalPPDGenerator:
         """Compute disk temperature structure"""
         # Temperature at 1 AU (influenced by stellar mass)
         log_T0 = np.random.normal(
-            self.temp_params['T0_mean'] + 0.5 * np.log(stellar_mass),
+            self.temp_params['T0_mean'] + 0.7 * np.log(stellar_mass), # Mass-dependent scatter
             self.temp_params['T0_std']
         )
         T0 = np.exp(log_T0)
@@ -209,63 +209,42 @@ class PhysicalPPDGenerator:
 
         # Temperature power-law index
         q = np.random.normal(
-            self.temp_params['q_mean'],
+            self.temp_params['q_mean'] - 0.1 * np.log(stellar_mass),  # Mass-dependent slope
             self.temp_params['q_std']
         )
 
         return T0, q
 
-    def compute_aspect_ratio(self, T0: float, stellar_mass: float, R_ref: float) -> float:
-        # Compute aspect ratio H/R based on temperature
-        # Physical dependency; not independent sampling
-        G_cgs = 6.67430e-8       # Gravitational constant (cm³ g⁻¹ s⁻²)
-        M_sun_cgs = 1.98847e33   # Solar mass (g)
-        AU_cgs = 1.495978707e13  # Astronomical Unit (cm)
-        M_star = stellar_mass * M_sun_cgs  # g
-        R_ref_cm = R_ref * AU_cgs          # cm
-
-        # Sound speed
-        k_B = 1.380649e-16  # Boltzmann constant in erg/K
-        mu = 2.34           # Mean molecular weight for molecular hydrogen
-        m_H = 1.6735575e-24 # Mass of hydrogen atom in g
-        c_s = np.sqrt(k_B * T0 / (mu * m_H))  # cm/s
-
-        # Orbital velocity
-        v_orb = np.sqrt(G_cgs * M_star / R_ref_cm)  # cm/s
-
-        # Aspect ratio
-        H_R = c_s / v_orb
-
-        # Ensure H_R is within set limits
-        H_R = max(min(H_R, self.H_R_max), self.H_R_min)
-
-        return H_R
-
     def compute_disk_structure(self, stellar_mass: float, T0: float, q: float) -> tuple:
         # Compute physically consistent disk structure
 
-        # Sample inner and outer radius
-        R_in = sample_parameter(
-            self.parameter_ranges['R_in']['core'],
-            self.parameter_ranges['R_in']['tail']
+        # Sample disk mass with stellar mass correlation
+        log_mass_ratio = np.random.normal(
+            self.disk_params['mass_ratio_mean'] + 0.5 * np.log(stellar_mass),
+            self.disk_params['mass_ratio_std']
         )
-        R_out = sample_parameter(
-            self.parameter_ranges['R_out']['core'],
-            self.parameter_ranges['R_out']['tail']
-        )
+        disk_mass_fraction = np.exp(log_mass_ratio)
+        disk_mass_fraction = np.clip(disk_mass_fraction, 0.0005, 0.2)
+        disk_mass = stellar_mass * disk_mass_fraction
+
+        # Disk size-mass relation
+        log_R_out = (np.log(200) + 
+                    self.disk_params['size_mass_slope'] * np.log(disk_mass) +
+                    np.random.normal(0, self.disk_params['size_mass_scatter']))
+        R_out = np.exp(log_R_out)
+        R_out = np.clip(R_out, 20, 1000)
+
+        # Inner radius with mass dependence
+        R_in = np.random.uniform(0.05, 0.2) * np.sqrt(stellar_mass)
+        R_in = np.clip(R_in, 0.02, 5.0)
 
         # Ensure R_in < R_out
         if R_in >= R_out:
             R_in, R_out = R_out, R_in  # Swap if necessary
 
         # Surface density power-law index
-        p = sample_parameter(
-            self.parameter_ranges['pindex']['core'],
-            self.parameter_ranges['pindex']['tail']
-        )
-
-        # Reference radius
-        R_ref = 1.0  # AU
+        p = np.random.normal(1.0 + 0.2 * np.log(disk_mass), 0.3)
+        p = np.clip(p, -1.0, 2.5)
 
         # Disk mass fraction of stellar mass
         disk_mass_fraction = sample_parameter(
@@ -287,6 +266,44 @@ class PhysicalPPDGenerator:
         logging.debug(f"Computed disk mass: {disk_mass}, Sigma0: {Sigma0}")
 
         return disk_mass, R_out, R_in, Sigma0, p
+
+    def compute_aspect_ratio(self, T0: float, stellar_mass: float, R_ref: float) -> float:
+        # Compute aspect ratio H/R with physical dependencies
+        # Constants in cgs units
+        G = 6.67430e-8          # Gravitational Constant
+        k_B = 1.380649e-16      # Boltzmann's Constant
+        mu = 2.34
+        m_H = 1.6735575e-24
+        AU = 1.496e13           # AU (cm)
+        M_sun = 1.989e33        # Solar Mass (g)
+
+        # Sound speed
+        k_B = 1.380649e-16  # Boltzmann constant in erg/K
+        mu = 2.34           # Mean molecular weight for molecular hydrogen
+        m_H = 1.6735575e-24 # Mass of hydrogen atom in g
+        c_s = np.sqrt(k_B * T0 / (mu * m_H))  # cm/s
+
+        # Convert to cgs
+        M_star = stellar_mass * M_sun
+        R = R_ref * AU
+        
+        # Sound speed with temperature dependence
+        c_s = np.sqrt(k_B * T0 / (mu * m_H))
+        
+        # Keplerian velocity
+        v_K = np.sqrt(G * M_star / R)
+        
+        # Base aspect ratio from hydrostatic equilibrium
+        H_R = c_s / v_K
+        
+        # Add random fluctuations (turbulence, magnetic fields, etc.)
+        fluctuation = np.random.normal(1.0, 0.1)
+        H_R *= fluctuation
+        
+        # Ensure within physical limits
+        H_R = np.clip(H_R, self.H_R_min, self.H_R_max)
+
+        return H_R
 
     def generate_planet_system(self, stellar_mass: float, disk_mass: float,
                                R_in: float, R_out: float) -> List[PlanetParameters]:
