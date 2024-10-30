@@ -85,13 +85,13 @@ DATA_DIR=\"$DEST_DIR/data_1300/\"
 
 echo "Looking for .fits.gz files in $DATA_DIR..."
 
-gunzip ${DATA_DIR}RT.fits.gz
+gunzip \${DATA_DIR}RT.fits.gz
 
-echo "Unzipping .fits.gz file ${DATA_DIR}RT.fits.gz..."
+echo "Unzipping .fits.gz file \${DATA_DIR}RT.fits.gz..."
 
-mv ${DATA_DIR}RT.fits $TARGET_DIR/$SIM_NAME.fits
+mv data_1300/RT.fits $TARGET_DIR/$SIM_NAME.fits
 
-echo "Moving ${DATA_DIR}RT.fits to $TARGET_DIR/$SIM_NAME.fits..."
+echo "Moving \${DATA_DIR}RT.fits to $TARGET_DIR/$SIM_NAME.fits..."
 
 echo "Files moved to $TARGET_DIR/$SIM_NAME.fits."
         " > $JOB_NAME
