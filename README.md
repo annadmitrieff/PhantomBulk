@@ -1,6 +1,7 @@
 ### PhantomBulk
 
 This is set of tools for running and processing protoplanetary disk simulations in bulk using PHANTOM and MCFOST on SLURM-managed HPC systems.
+Not for general use yet because I haven't generalized it, so half the code is specific to my filesystem...
 
 #### Installation
 
