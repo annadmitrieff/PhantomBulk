@@ -50,3 +50,10 @@ Post-process your simulations (grabs 50th dump file):
 ```bash
 sbatch post-process.sh
 ```
+
+### To Do's
+
+- [ ] Consolidate with the existing parameter sweep tool `PhantomConfig`, enabling parameter sweeps.
+- [ ] Enable support for more pre-baked setups.
+- [ ] Include more comprehensive and nuanced core and tail ranges.
+- [ ] Make procedure more user-friendly & not Sapelo2-exclusive :-)
