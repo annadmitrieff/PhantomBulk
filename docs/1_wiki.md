@@ -19,7 +19,6 @@ This documentation will guide you through the setup, usage, and customization of
   - [`master-script.sh`](#master-scriptsh)
   - [`ppd-physics.py`](#ppd-physicspy)
   - [`post-process.sh`](#post-processsh)
-- [Customization](#customization)
 - [Examples](#examples)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
@@ -173,6 +172,8 @@ Ensure that the `TARGET_DIR` and `REF_FILE` variables in `post-process.sh` are c
 
 ## Configuration
 
+This code hasn't been configured for general use yet. That being said, if you're interested in using it, I recommend considering the following--
+
 ### Adjusting Simulation Parameters
 
 - **`ppd-physics.py`**: Modify default parameter ranges and distributions in the script if needed.
@@ -185,7 +186,7 @@ Ensure that the `TARGET_DIR` and `REF_FILE` variables in `post-process.sh` are c
 
 ### File Paths
 
-- Ensure all file paths in the scripts are correct and accessible in your environment. Replace placeholder paths like `/home/yourusername/` with your actual directories.
+- Ensure all file paths in the scripts are correct and accessible in your environment. Replace placeholder paths like `/home/yourusername/` with your actual directories. I haven't generalized the code yet so be wary of this!
 
 ---
 
@@ -228,31 +229,6 @@ Ensure that the `TARGET_DIR` and `REF_FILE` variables in `post-process.sh` are c
   - Collects specified dump files from simulations.
   - Applies MCFOST processing commands.
   - Organizes results into a designated directory.
-
----
-
-## Customization
-
-### Adjusting Parameter Distributions
-
-Modify the `PhysicalPPDGenerator` class in `ppd-physics.py` to change the sampling ranges and distributions for simulation parameters.
-
-### Changing Simulation Templates
-
-- **Setup Files**: Edit `setup/dustysgdisc.setup` to modify the simulation setup template.
-- **Reference Files**: Update `setup/ref4.1.para` if you need different reference parameters for MCFOST.
-
-### Modifying SLURM Directives
-
-Edit the `#SBATCH` directives in the shell scripts to adjust:
-
-- Job name
-- Partition/queue
-- Number of tasks and CPUs
-- Memory allocation
-- Time limits
-- Output logs
-- Email notifications
 
 ---
 
