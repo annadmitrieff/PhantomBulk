@@ -288,10 +288,6 @@ The physical setup of the simulations is grounded in astrophysical observations 
 
 ---
 
-**Note**: Replace placeholder paths, emails, and usernames in the scripts and documentation with your actual details. Always ensure compliance with your HPC system's policies and guidelines when running simulations.
-
----
-
 ## Detailed Explanations and Additional Notes
 
 ### Physical Constraints and Validation
