@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-ppd-physics.py: Generate physically realistic parameters for protoplanetary disk simulations.
-"""
 
 import argparse
 import logging
@@ -14,9 +11,9 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-# ===========================
+# ==================
 # ++ DATA CLASSES ++
-# ===========================
+# ==================
 
 @dataclass
 class PlanetParameters:
@@ -55,18 +52,18 @@ class PPDParameters:
         self.gamma = 1.4         # Adiabatic index
 
         # Set minimum temperature in Kelvin
-        self.T_min = 50  # Adjust as needed based on your simulation
+        self.T_min = 50  # Adjust as needed?
 
         # Compute minimum internal energy per unit mass (u_min)
         self.u_min = (self.k_B * self.T_min) / ((self.gamma - 1) * self.mu * self.m_H)
 
     def enforce_internal_energy_floor(self, u: float) -> float:
-        """Ensure internal energy per unit mass is above the minimum."""
+        # Ensure internal energy per unit mass is above the minimum.
         return max(u, self.u_min)
 
-# ===========================
+# =======================
 # ++ SAMPLING FUNCTION ++
-# ===========================
+# =======================
 
 def sample_parameter(core_range: Tuple[float, float],
                      tail_range: Tuple[float, float],
@@ -87,9 +84,9 @@ def sample_parameter(core_range: Tuple[float, float],
     else:
         return np.random.uniform(*core_range)
 
-# ===========================
+# ==========================
 # ++ PPD GENERATOR CLASS ++
-# ===========================
+# ==========================
 
 class PhysicalPPDGenerator:
     # Generate PPD parameters with physical correlations
@@ -106,7 +103,9 @@ class PhysicalPPDGenerator:
         self.imf_alpha = -2.3  # High-mass slope
         self.mass_break = 0.5  # Solar masses
 
-        # Disk properties from surveys (e.g., Andrews et al. 2010, Ansdell et al. 2016)
+        # Disk properties from surveys Andrews et al. 2010, Ansdell et al. 2016:
+            # PROTOPLANETARY DISK STRUCTURES IN OPHIUCHUS. II. EXTENSION TO FAINTER SOURCES
+            # ALMA SURVEY OF LUPUS PROTOPLANETARY DISKS. I. DUST AND GAS MASSES
         self.disk_params = {
             'mass_ratio_mean': np.log(0.01),  # Mean log disk-to-star mass ratio
             'mass_ratio_std': 0.8,            # Scatter in log mass ratio
@@ -121,59 +120,47 @@ class PhysicalPPDGenerator:
             'q_mean': -0.5,           # Mean temperature power-law index
             'q_std': 0.15             # Scatter in temperature index
         }
-        self.T0_min = 30     # Minimum Temperature
+        self.T0_min = 10     # Minimum Temperature
         self.H_R_min = 0.03  # Minimum aspect ratio
         self.H_R_max = 0.25  # Maximum aspect ratio
 
-        # Define core and tail ranges for each parameter
+        # Define core and tail ranges for each parameter:
         self.parameter_ranges = {
             'm1': {
                 'core': (0.1, 3.0),
                 'tail': (0.08, 5.0)
             },
             'accr1': {
-                'core': (0.02, 0.15),  # Reduced accretion radius
-                'tail': (0.01, 0.2)
+                'core': (1, 1), # fixed accretion radius
+                'tail': (1, 1)
             },
-            'disc_m_fraction': {
+            'disc_m_fraction': {   
                 'core': (0.001, 0.1),
                 'tail': (0.0005, 0.2)
             },
-            'R_in': {
-                'core': (0.05, 2.0),
-                'tail': (0.02, 5.0)
-            },
             'R_out': {
-                'core': (30, 500),
-                'tail': (20, 1000)
+                'core': (150, 250),
+                'tail': (100, 300)
             },
             'H_R': {
                 'core': (0.03, 0.2),
                 'tail': (0.02, 0.25)
             },
-            'pindex': {
-                'core': (-0.5, 2.0),  # Typical range for pindex
-                'tail': (-1.0, 2.5)
-            },
-            'qindex': {
-                'core': (-0.75, -0.25),
-                'tail': (-1.0, -0.1)
-            },
-            'dust_to_gas': {
+            'dust_to_gas': { # ratio
                 'core': (0.005, 0.05),
                 'tail': (0.001, 0.1)
             },
-            'grainsize': {
-                'core': (0.0001, 1.0),
-                'tail': (0.00001, 10.0)
+            'grainsize': { # in cm
+                'core': (0.0001, 0.1),
+                'tail': (0.00001, 1.0)
             },
             'graindens': {
                 'core': (1.5, 4.0),
                 'tail': (1.0, 5.0)
             },
             'beta_cool': {
-                'core': (5, 50),      
-                'tail': (1, 100)     
+                'core': (1, 25),      
+                'tail': (0.01, 75)     
             },
             'J2_body1': {
                 'core': (0.0, 0.01),
@@ -182,7 +169,7 @@ class PhysicalPPDGenerator:
         }
 
     def generate_stellar_mass(self) -> float:
-        # Generate stellar mass following the IMF
+        # Generate stellar mass following the Initial Mass Function:
         while True:
             # Sample from broken power-law IMF
             if np.random.random() < 0.5:  # Low-mass segment
@@ -196,10 +183,10 @@ class PhysicalPPDGenerator:
                 return mass
 
     def compute_temperature_structure(self, stellar_mass: float) -> tuple:
-        """Compute disk temperature structure"""
+        # Compute disk temperature structure:
         # Temperature at 1 AU (influenced by stellar mass)
         log_T0 = np.random.normal(
-            self.temp_params['T0_mean'] + 0.7 * np.log(stellar_mass), # Mass-dependent scatter
+            self.temp_params['T0_mean'] + 0.7 * np.log(stellar_mass), # Mass-dependent scatter; logarithmic dependency scaling w/ mass
             self.temp_params['T0_std']
         )
         T0 = np.exp(log_T0)
@@ -207,17 +194,12 @@ class PhysicalPPDGenerator:
         # Ensure T0 is above minimum
         T0 = max(T0, self.T0_min)
 
-        # Temperature power-law index
-        q = np.random.normal(
-            self.temp_params['q_mean'] - 0.1 * np.log(stellar_mass),  # Mass-dependent slope
-            self.temp_params['q_std']
-        )
+        q = 0.250
 
         return T0, q
 
     def compute_disk_structure(self, stellar_mass: float, T0: float, q: float) -> tuple:
         # Compute physically consistent disk structure
-
         # Sample disk mass with stellar mass correlation
         log_mass_ratio = np.random.normal(
             self.disk_params['mass_ratio_mean'] + 0.5 * np.log(stellar_mass),
@@ -227,24 +209,14 @@ class PhysicalPPDGenerator:
         disk_mass_fraction = np.clip(disk_mass_fraction, 0.0005, 0.2)
         disk_mass = stellar_mass * disk_mass_fraction
 
-        # Disk size-mass relation
-        log_R_out = (np.log(200) + 
-                    self.disk_params['size_mass_slope'] * np.log(disk_mass) +
-                    np.random.normal(0, self.disk_params['size_mass_scatter']))
-        R_out = np.exp(log_R_out)
-        R_out = np.clip(R_out, 20, 1000)
+        R_out = sample_parameter(
+                    self.parameter_ranges['R_out']['core'],
+                    self.parameter_ranges['R_out']['tail']
+        )
 
-        # Inner radius with mass dependence
-        R_in = np.random.uniform(0.05, 0.2) * np.sqrt(stellar_mass)
-        R_in = np.clip(R_in, 0.02, 5.0)
+        R_in = 1
 
-        # Ensure R_in < R_out
-        if R_in >= R_out:
-            R_in, R_out = R_out, R_in  # Swap if necessary
-
-        # Surface density power-law index
-        p = np.random.normal(1.0 + 0.2 * np.log(disk_mass), 0.3)
-        p = np.clip(p, -1.0, 2.5)
+        p = 1
 
         # Disk mass fraction of stellar mass
         disk_mass_fraction = sample_parameter(
@@ -272,8 +244,8 @@ class PhysicalPPDGenerator:
         # Constants in cgs units
         G = 6.67430e-8          # Gravitational Constant
         k_B = 1.380649e-16      # Boltzmann's Constant
-        mu = 2.34
-        m_H = 1.6735575e-24
+        mu = 2.34               # Mean Molecular Weight
+        m_H = 1.6735575e-24     # Hydrogen Mass
         AU = 1.496e13           # AU (cm)
         M_sun = 1.989e33        # Solar Mass (g)
 
@@ -287,7 +259,7 @@ class PhysicalPPDGenerator:
         M_star = stellar_mass * M_sun
         R = R_ref * AU
         
-        # Sound speed with temperature dependence
+        # Sound speed with temperature dependence?
         c_s = np.sqrt(k_B * T0 / (mu * m_H))
         
         # Keplerian velocity
@@ -354,7 +326,7 @@ class PhysicalPPDGenerator:
 
     def generate_single_ppd(self) -> PPDParameters:
         # Generate a single physically consistent PPD
-        max_attempts = 10  # Limit the number of attempts to prevent infinite loops
+        max_attempts = 10  # Limit the number of attempts to prevent infinite loops...
         attempts = 0
         while attempts < max_attempts:
             attempts += 1
@@ -399,9 +371,6 @@ class PhysicalPPDGenerator:
             )
             logging.debug(f"Sampled beta_cool: {beta_cool}")
 
-            # Ensure beta_cool is sufficiently large to prevent excessive cooling
-            beta_cool = max(beta_cool, 30)
-
             # Sample J2_body1
             J2_body1 = sample_parameter(
                 self.parameter_ranges['J2_body1']['core'],
@@ -415,11 +384,8 @@ class PhysicalPPDGenerator:
             )
             logging.debug(f"Generated {len(planets)} planets")
 
-            # Stellar accretion radius, adjusted to be smaller than R_in
-            accr1 = min(R_in / 2, sample_parameter(
-                self.parameter_ranges['accr1']['core'],
-                self.parameter_ranges['accr1']['tail']
-            ))
+            accr1 = 1
+
             logging.debug(f"Computed accr1 (stellar accretion radius): {accr1}")
 
             # Create parameter object
@@ -452,18 +418,14 @@ class PhysicalPPDGenerator:
         raise ValueError("Failed to generate valid PPD parameters after multiple attempts.")
 
     def validate(self, params: PPDParameters) -> bool:
-        """Validate generated parameters. Implement necessary checks."""
-
-        # General Validation to Address Disk Structure:
+        # Checks and balances...
         if params.R_in >= params.R_out:
             return False
         if not (0 <= params.J2_body1 <= 0.1):
             return False
         if params.disc_m <= 0:
             return False
-
-        # Additional Validation
-        if params.beta_cool <= 20:
+        if params.beta_cool <= 1:
             return False
         if params.H_R < self.H_R_min or params.H_R > self.H_R_max:
             return False
@@ -475,16 +437,12 @@ class PhysicalPPDGenerator:
             return False
         if params.m1 <= 0:
             return False
-        if params.accr1 <= 0 or params.accr1 >= params.R_in:
+        if params.accr1 <= 0 or params.accr1 > params.R_in:
             return False  # Ensure accr1 is less than R_in
-        if params.pindex <= 0:
-            return False
-        if params.qindex >= 0:
-            return False
 
         # Validate temperature within a reasonable range
         T0_min = self.T0_min
-        T0_max = 1000  # Kelvin
+        T0_max = 2000  # Kelvin 
         if not (T0_min <= params.T0 <= T0_max):
             return False
 
@@ -505,26 +463,26 @@ class PhysicalPPDGenerator:
         # Generate parameters for multiple discs
         return [self.generate_single_ppd() for _ in range(n_discs)]
 
-# ==============================
+# ==================
 # ++ FILE MANAGER ++
-# ==============================
+# ==================
 
 class PHANTOMFileManager:
-    """Manage PHANTOM input file generation and modification."""
+    # Manage PHANTOM input file generation and modification.
 
     def __init__(self, setup_template_path: str):
         self.setup_template = self.read_file(setup_template_path)
 
     @staticmethod
     def read_file(filename: str) -> str:
-        """Read the content of a file."""
+        # Read the content of a file.
         if not Path(filename).is_file():
             raise FileNotFoundError(f"Template file '{filename}' not found.")
         with open(filename, 'r') as f:
             return f.read()
 
     def create_setup_file(self, params: PPDParameters, output_dir: Path, sim_id: int):
-        """Generate the `.setup` file with all placeholders replaced by params."""
+        # Generate the `.setup` file with all placeholders replaced by params.
         # Start with the setup template
         setup_content = self.setup_template
 
@@ -565,7 +523,7 @@ class PHANTOMFileManager:
             f.write(setup_content)
 
     def generate_planet_configurations(self, planets: List[PlanetParameters]) -> str:
-        """Generate the planet configuration strings for the .setup file."""
+        # Generate the planet configuration strings for the .setup file.
         planet_configs = ""
         for i, planet in enumerate(planets, 1):
             planet_configs += f"""
@@ -597,7 +555,6 @@ J2_body{i} =       {planet.j2_moment:.3f}    ! J2 moment (oblateness)
         # Define patterns and replacements
         replacements = {
             r'^\s*beta_cool\s*=\s*\d+\.\d+\s*!.*$': f"beta_cool = {params.beta_cool:.3f}    ! beta factor in Gammie (2001) cooling",
-            r'^\s*T0\s*=\s*\d+\.\d+\s*!.*$': f"T0 = {params.T0:.3f}    ! Temperature at 1 AU"
         }
 
         # Perform replacements using regex
@@ -617,7 +574,7 @@ J2_body{i} =       {planet.j2_moment:.3f}    ! J2 moment (oblateness)
 # ==============================
 
 def generate_phantom_input(params: PPDParameters, output_dir: Path, sim_id: int, file_manager: PHANTOMFileManager) -> bool:
-    """Generate PHANTOM setup file, run phantomsetup, modify .in, and create submission script."""
+    # Generate PHANTOM setup file, run phantomsetup, modify .in, and create submission script.
 
     # Step 1: Copy `phantom` and `phantomsetup` executables
     src_dir = Path("/home/adm61595/CHLab/PhantomBulk/phantom/")
@@ -629,7 +586,7 @@ def generate_phantom_input(params: PPDParameters, output_dir: Path, sim_id: int,
             subprocess.run(["cp", str(src_path), str(dest_path)], check=True)
         else:
             logging.error(f"{exe} executable not found at {src_path}.")
-            return False  # Skip this simulation if executables are missing
+            return False  # Skips this simulation if executables are missing
 
     # Step 2: Generate the populated `.setup` file
     file_manager.create_setup_file(params, output_dir, sim_id)
@@ -648,7 +605,7 @@ def generate_phantom_input(params: PPDParameters, output_dir: Path, sim_id: int,
     # Step 5: Modify `.in` file based on additional parameters
     try:
         # Run phantomsetup again if needed
-        result_phantomsetup = subprocess.run(['./phantomsetup', 'dustysgdisc'], cwd=output_dir)
+        result_phantomsetup = subprocess.run(['./phantomsetup', 'dustysgdisc'], cwd=output_dir) # Runs it a second time to override missing values when dealing with nonzero J2 (auto-calculates)
         file_manager.modify_in_file(params, output_dir)
     except FileNotFoundError:
         logging.error(f"'dustysgdisc.in' not found for simulation {sim_id}. Skipping.")
@@ -721,7 +678,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Initialize generators and managers
-    generator = PhysicalPPDGenerator(seed=42)  # Ensures reproducibility
+    generator = PhysicalPPDGenerator(seed=42) # For reproducibility
 
     # Initialize PHANTOMFileManager with the setup template only
     current_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()

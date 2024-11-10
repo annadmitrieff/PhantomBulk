@@ -25,7 +25,7 @@
       ismoothgas =           T              ! smooth inner disc
            iwarp =           F              ! warp disc
             R_in =       {{R_in}}           ! inner radius
-           R_ref =         10.              ! reference radius
+           R_ref =         1.               ! reference radius
            R_out =        {{R_out}}         ! outer radius
           disc_m =       {{disc_m}}         ! disc mass
           pindex =       {{pindex}}         ! power law index of surface density sig=sig0*r^-p

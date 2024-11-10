@@ -4,7 +4,7 @@
 # PARAMETERS FOR POST-PROCESSING 
 # ==============================
 
-DEFAULT_TARGET_DIR="/scratch/"
+DEFAULT_TARGET_DIR="/home/adm61595/runs/scratch/"
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -40,11 +40,11 @@ for SIM_DIR in "${SIM_PATH}"/*; do # For each item in the simulation runs direct
     
     if [ -f "${SIM_DIR}/dustysgdisc.setup" ]; then # And if the file 'dustysgdisc.setup' exists in the directory,
 
-      if [ -f "${SIM_DIR}/dustysgdisc_00050" ]; then # And if the file 'dustysgdisc_00050' exists in the directory,
+      if [ -f "${SIM_DIR}/dustysgdisc_00020" ]; then # And if the file 'dustysgdisc_00050' exists in the directory,
 
         SETUP_FILE="${SIM_DIR}/dustysgdisc.setup"
 
-        DUMP_FILE="${SIM_DIR}/dustysgdisc_00050"
+        DUMP_FILE="${SIM_DIR}/dustysgdisc_00020"
 
         SIM_NAME=$(basename "$SIM_DIR")
 
@@ -73,27 +73,27 @@ for SIM_DIR in "${SIM_PATH}"/*; do # For each item in the simulation runs direct
 
 cd $DEST_DIR
 
+mkdir ${TARGET_DIR}fits
+
 # EXECUTING MCFOST COMMANDS
 
-$HOME/local/glibc-2.34/lib/ld-linux-x86-64.so.2 --library-path \"$HOME/local/glibc-2.34/lib:/lib64\" /home/adm61595/Software/mcfost $DEST_DIR/ref4.1.para -phantom $DEST_DIR/dustysgdisc_00050 -mol
+$HOME/local/glibc-2.34/lib/ld-linux-x86-64.so.2 --library-path \"$HOME/local/glibc-2.34/lib:/lib64\" /home/adm61595/Software/mcfost ref4.1.para -phantom dustysgdisc_00020 -fix_star -mol
 
-$HOME/local/glibc-2.34/lib/ld-linux-x86-64.so.2 --library-path \"$HOME/local/glibc-2.34/lib:/lib64\" /home/adm61595/Software/mcfost $DEST_DIR/ref4.1.para -phantom $DEST_DIR/dustysgdisc_00050 -img 1300
+$HOME/local/glibc-2.34/lib/ld-linux-x86-64.so.2 --library-path \"$HOME/local/glibc-2.34/lib:/lib64\" /home/adm61595/Software/mcfost ref4.1.para -phantom dustysgdisc_00020 -fix_star -img 1300
 
 echo "Processing completed. Moving files:"
 
-DATA_DIR=\"$DEST_DIR/data_1300/\"
+export DATA_DIR=\"/home/adm61595/runs/$DEST_DIR/data_1300\"
 
-echo "Looking for .fits.gz files in $DATA_DIR..."
+echo \"Looking for .fits.gz files in \$DATA_DIR...\"
 
-gunzip \${DATA_DIR}RT.fits.gz
+gunzip \$DATA_DIR/RT.fits.gz
 
-echo "Unzipping .fits.gz file \${DATA_DIR}RT.fits.gz..."
+echo \"Unzipped .fits.gz file \$DATA_DIR/RT.fits.gz...\"
 
-mv data_1300/RT.fits $TARGET_DIR/$SIM_NAME.fits
+mv \$DATA_DIR/RT.fits ${TARGET_DIR}fits/$SIM_NAME.fits
 
-echo "Moving \${DATA_DIR}RT.fits to $TARGET_DIR/$SIM_NAME.fits..."
-
-echo "Files moved to $TARGET_DIR/$SIM_NAME.fits."
+echo \"Moved \$DATA_DIR/RT.fits to ${TARGET_DIR}fits/$SIM_NAME.fits.\"
         " > $JOB_NAME
 
         sbatch $JOB_NAME
