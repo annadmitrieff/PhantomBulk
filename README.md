@@ -56,8 +56,7 @@ Before running simulations, configure the necessary parameters.
 
    Open the configuration file in your preferred text editor and adjust the parameters as needed.
 
-   ```yaml
----
+```yaml
 # Paths
 VENV_PATH: "$HOME/PhantomBulk/env"
 
@@ -129,7 +128,7 @@ parameter_ranges:
     core: [0.0, 0.02]
     tail: [0.0, 0.05]
 
-   ```
+```
 
 ## Usage
 
