@@ -21,6 +21,7 @@ class PPDParameters:
     Sigma0: float             # Surface density
     R_in: float               # Inner radius in AU
     R_out: float              # Outer radius in AU
+    R_ref: float              # Reference Radius
     H_R: float                # Aspect ratio
     pindex: float             # Surface density power-law index
     qindex: float             # Temperature power-law index

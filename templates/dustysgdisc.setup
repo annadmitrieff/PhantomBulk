@@ -17,7 +17,7 @@
              accr1 =       {{accr1}}        ! star accretion radius
 
 # oblateness
-          J2_body =       {{J2_body}}       ! J2 moment (oblateness)
+          J2_body =       {{J2_body1}}      ! J2 moment (oblateness)
 
 # options for gas accretion disc
          isetgas =           0              ! how to set gas density profile (0=total disc mass,1=mass within annulus,2=surface density normalisation,3=surface density at reference radius,4=minimum Toomre Q)
@@ -25,7 +25,7 @@
       ismoothgas =           T              ! smooth inner disc
            iwarp =           F              ! warp disc
             R_in =       {{R_in}}           ! inner radius
-           R_ref =         1.               ! reference radius
+           R_ref =       {{R_ref}}          ! reference radius
            R_out =        {{R_out}}         ! outer radius
           disc_m =       {{disc_m}}         ! disc mass
           pindex =       {{pindex}}         ! power law index of surface density sig=sig0*r^-p

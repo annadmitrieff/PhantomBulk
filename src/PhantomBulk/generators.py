@@ -34,8 +34,8 @@ class PhysicalPPDGenerator:
         # Temperature scaling with stellar luminosity
         L_star = stellar_mass ** 3.5  # Approximate luminosity scaling
         T0 = 280 * (L_star ** 0.25)  # Temperature at 1 AU
-        qindex = np.random.normal(0.25, 0.75)
-        # qindex = 0.250 # Setting this constant for now
+        #qindex = np.random.normal(0.25, 0.75)
+        qindex = 0.5
         return T0, qindex
 
     def compute_disc_structure(
@@ -54,29 +54,27 @@ class PhysicalPPDGenerator:
         """
         # Disc mass as a fraction of stellar mass
         disc_mass = 0.01 * stellar_mass
-        
+
         # Outer radius sampled from parameter ranges
         R_out = sample_parameter(
             self.parameter_ranges['R_out']['core'],
             self.parameter_ranges['R_out']['tail']
         )
-        
         # Inner radius sampled from parameter ranges
         R_in = sample_parameter(
             self.parameter_ranges['R_in']['core'],
             self.parameter_ranges['R_in']['tail']
         )
-        
-        # Ensure R_in is less than R_out
         if R_in >= R_out:
             raise ValueError(f"Invalid radii: R_in ({R_in}) must be less than R_out ({R_out}).")
         
-        # Surface density power-law index
-        pindex = 1.0  # Generalization
-        
-        # Reference radius (in AU)
+        # Sample p-index from a distribution
+        # pindex = np.random.uniform(0.5, 1.5) 
+        pindex = 1.0 
+
+        # Reference radius for normalization
         r0 = 1.0
-        
+
         # Calculate Sigma0 based on disc_mass, R_in, R_out, and pindex
         if pindex == 1.0:
             # Special case where pindex equals 1
@@ -84,10 +82,34 @@ class PhysicalPPDGenerator:
         else:
             # General case
             Sigma0 = (disc_mass * (2 - pindex) / (2 * np.pi * r0**2) /
-                      (R_out**(2 - pindex) - R_in**(2 - pindex)))
-        
+                    (R_out**(2 - pindex) - R_in**(2 - pindex)))
+
         return disc_mass, R_out, R_in, Sigma0, pindex
+
     
+    def compute_reference_radius(self, R_in: float, R_out: float, Sigma0: float, pindex: float) -> float:
+        """
+        Compute or select a reference radius (R_ref) for the disc.
+        
+        Parameters:
+            R_in (float): Inner radius in AU.
+            R_out (float): Outer radius in AU.
+            Sigma0 (float): Surface density normalization in g/cm^2.
+            pindex (float): Surface density power-law index.
+            
+        Returns:
+            float: Computed or selected R_ref.
+
+        """
+        if pindex != 1.0:
+            R_ref = ((Sigma0 * (2 - pindex)) / (np.pi * (R_out**(2 - pindex) - R_in**(2 - pindex)))) ** (1 / pindex)
+        else:
+            R_ref = np.sqrt(R_in * R_out)
+        
+        # Ensure R_ref lies within valid bounds
+        R_ref = max(R_in, min(R_ref, R_out))
+        return R_ref
+
     def compute_aspect_ratio(
         self, T0: float, stellar_mass: float, R_ref: float = 1.0
     ) -> float:
@@ -111,86 +133,43 @@ class PhysicalPPDGenerator:
         H_AU = H / 1.496e13
         H_R = H_AU / R_ref
         return H_R
-    
-    def generate_planet_system(
-        self, stellar_mass: float, disc_mass: float, R_in: float, R_out: float
-    ) -> List[PlanetParameters]:
-        """
-        Generate a physically consistent planetary system.
-        
-        Parameters:
-            stellar_mass (float): Stellar mass in solar masses.
-            disc_mass (float): Disc mass.
-            R_in (float): Inner radius in AU.
-            R_out (float): Outer radius in AU.
-        
-        Returns:
-            List of PlanetParameters.
-        """
-        efficiency = np.random.lognormal(mean=np.log(0.1), sigma=1.0)
-        max_total_planet_mass = disc_mass * efficiency
-        lambda_poisson = 2.0 * (stellar_mass / 1.0) ** 0.5
-        n_planets = np.random.poisson(lambda_poisson)
-        n_planets = min(n_planets, 8)  # Cap maximum number
-        
+
+    def generate_planet_system(self, stellar_mass: float, disk_mass: float,
+                               R_in: float, R_out: float) -> List[PlanetParameters]:
+        # Generate physically consistent planetary system
+        # Determine number of planets with limits
+        max_planets = min(6, int(disk_mass / 0.005))
+        n_planets = np.random.randint(0, max_planets + 1)
+
         if n_planets == 0:
             return []
-        
+
+        # Set a margin to avoid planets lying exactly on R_in or R_out
+        margin = 0.1 * (R_out - R_in)  # Increased margin to 10%
+
+        # Generate planet locations within disk boundaries
+        available_radii = np.linspace(R_in + margin, R_out - margin, 1000)
+        planet_radii = np.sort(np.random.choice(available_radii, n_planets, replace=False))
+
         planets = []
-        remaining_mass = max_total_planet_mass
-        min_separation = 8.0
-        available_radii = np.logspace(np.log10(R_in * 1.5), np.log10(R_out * 0.8), 1000)
-        planet_radii = []
-        
-        for _ in range(n_planets):
-            if len(planet_radii) == 0:
-                radius = np.random.choice(available_radii)
-                planet_radii.append(radius)
-            else:
-                # Find valid positions respecting Hill stability
-                valid_positions = []
-                for r in available_radii:
-                    valid = True
-                    for existing_r in planet_radii:
-                        if abs(np.log10(r / existing_r)) < min_separation / 3:
-                            valid = False
-                            break
-                    if valid:
-                        valid_positions.append(r)
-                
-                if not valid_positions:
-                    break
-                
-                radius = np.random.choice(valid_positions)
-                planet_radii.append(radius)
-        
-        planet_radii.sort()
-        
-        # Generate planet masses following observed distributions
         for radius in planet_radii:
-            if remaining_mass <= 0:
-                break
-            
-            # Mass scales with orbital distance
+            # Planet mass based on disk mass and location
+            # Use isolation mass or Hill sphere considerations
             max_mass = min(
-                remaining_mass,
-                10.0 * (radius / 30) ** (-1.5)  # Jupiter masses
+                10.0,  # Maximum planet mass (M_Jupiter)
+                (disk_mass / 0.1) * (radius / 30)**(-1.5)  # Mass decreases with radius
             )
-            
-            mass = np.random.power(0.6) * max_mass  # Power law distribution
-            remaining_mass -= mass
-            
-            # Inclination distribution
-            incl = np.random.rayleigh(1.5)
-            incl = min(incl, 40)  # Cap maximum inclination
-            
-            # Accretion radius scaled to Hill radius
-            hill_radius = radius * (mass / (3 * stellar_mass)) ** (1 / 3)
-            accr_radius = np.random.uniform(0.1, 0.3) * hill_radius
-            
-            # J2 moment considering planet mass and rotation
-            j2_moment = np.random.lognormal(mean=np.log(0.01), sigma=0.5)
-            
+            mass = np.random.uniform(0.1, max_mass)
+
+            # Inclination dependent on system mass
+            max_incl = 5 * (stellar_mass / disk_mass)**0.2  # Reduced maximum inclination
+            incl = np.random.rayleigh(max_incl / 3)
+            incl = min(incl, 15)  # Enforce inclination limit
+
+            # Sample accretion radius and J2 moment
+            accr_radius = np.random.uniform(0.02, 0.05)  # Accretion radius in Hill radii
+            j2_moment = np.random.uniform(0.0, 0.05)    # J2 moment
+
             planet = PlanetParameters(
                 mass=mass,
                 radius=radius,
@@ -199,7 +178,7 @@ class PhysicalPPDGenerator:
                 j2_moment=j2_moment
             )
             planets.append(planet)
-        
+
         return planets
     
     def validate_parameters(self, params: PPDParameters) -> bool:
@@ -253,6 +232,10 @@ class PhysicalPPDGenerator:
                 disc_mass, R_out, R_in, Sigma0, pindex = self.compute_disc_structure(stellar_mass, T0, qindex)
                 logging.debug(f"Attempt {attempt}: Computed disc structure: disc_mass={disc_mass}, R_out={R_out}, R_in={R_in}, Sigma0={Sigma0}, pindex={pindex} (types: disc_mass={type(disc_mass)}, R_out={type(R_out)}, R_in={type(R_in)}, Sigma0={type(Sigma0)}, pindex={type(pindex)})")
     
+                # Compute reference radius
+                R_ref = self.compute_reference_radius(R_in, R_out, Sigma0, pindex)
+                logging.debug(f"Attempt {attempt}: Computed R_ref = {R_ref}")
+
                 # Compute aspect ratio
                 H_R = self.compute_aspect_ratio(T0, stellar_mass)
                 logging.debug(f"Attempt {attempt}: Computed aspect ratio H_R={H_R} (type: {type(H_R)})")
@@ -303,6 +286,7 @@ class PhysicalPPDGenerator:
                     disc_m=disc_mass,
                     Sigma0=Sigma0,
                     R_in=R_in,
+                    R_ref=R_ref,
                     R_out=R_out,
                     H_R=H_R,
                     pindex=pindex,
@@ -323,6 +307,7 @@ class PhysicalPPDGenerator:
                 assert isinstance(params.disc_m, float), f"disc_m must be float, got {type(params.disc_m)}"
                 assert isinstance(params.Sigma0, float), f"Sigma0 must be float, got {type(params.Sigma0)}"
                 assert isinstance(params.R_in, float), f"R_in must be float, got {type(params.R_in)}"
+                assert isinstance(params.R_ref, float), f"R_ref must be float, got {type(params.R_out)}"
                 assert isinstance(params.R_out, float), f"R_out must be float, got {type(params.R_out)}"
                 assert isinstance(params.H_R, float), f"H_R must be float, got {type(params.H_R)}"
                 assert isinstance(params.pindex, float), f"pindex must be float, got {type(params.pindex)}"

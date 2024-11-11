@@ -107,6 +107,7 @@ class PHANTOMFileManager:
             "accr1": params.accr1,
             "J2_body1": params.J2_body1,
             "R_in": params.R_in,
+            "R_ref": params.R_ref,
             "R_out": params.R_out,
             "disc_m": params.disc_m,
             "pindex": params.pindex,
@@ -115,10 +116,10 @@ class PHANTOMFileManager:
             "dust_to_gas": params.dust_to_gas,
             "grainsize": params.grainsize,
             "graindens": params.graindens,
-            "beta_cool": params.beta_cool,
-            "T0": params.T0,
             "NUM_PLANETS": num_planets,
             "PLANET_CONFIGURATIONS": planet_configurations
+            #"beta_cool": params.beta_cool,
+            #"T0": params.T0
         }
 
         # Step 5: Replace each placeholder with actual parameter values
