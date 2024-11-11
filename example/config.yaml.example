@@ -1,0 +1,74 @@
+---
+# config.yaml.example
+# example config file to populate
+
+# Paths
+VENV_PATH: "$HOME/PhantomBulk/env"
+
+PHANTOM_DIR: "$HOME/phantom"  # Change this if necessary (e.g., ~/Software/phantom/)
+PYTHON_SCRIPT: "$HOME/PhantomBulk/src/PhantomBulk/main.py"
+
+# Setup Templates
+SETUP_TEMPLATE: "$HOME/PhantomBulk/templates/dustysgdisc.setup"
+REFERENCE_FILE: "$HOME/PhantomBulk/templates/ref4.1.para"       
+
+# PHANTOM Setup Type
+PHANTOM_SETUP_TYPE: "default" # Options: default, setup1, setup2, etc.
+
+# System & Job Information
+JOB_SCHEDULER: "SLURM" 
+CPUS_PER_TASK: "20"
+PARTITION: "batch"
+MAIL_TYPE: "FAIL"
+N_TASKS: "1"
+TIME: "6-23:59:59"
+MEM: "10G"
+
+# Your Information
+USER_EMAIL: "annadmitrieff@uga.edu"
+
+# Simulation Parameters
+N_SIMS: 10
+OUTPUT_DIR: "$HOME/PhantomBulk/outputs/"
+
+# Logging
+log_level: "INFO"
+
+# Random Seed for Reproducibility
+seed: 42
+
+# Parameter Ranges
+parameter_ranges:
+  m1:
+    core: [0.08, 4.0]
+    tail: [0.05, 7.0]
+  accr1: # placeholder range; this is *always* R_in - 0.01
+    core: [0.02, 0.09]
+    tail: [0.01, 0.1]
+  disc_m_fraction:
+    core: [0.001, 0.2]
+    tail: [0.0005, 0.3]
+  R_in:
+    core: [0.03,0.1]
+    tail: [0.02,0.2]
+  R_out:
+    core: [100, 300]
+    tail: [50, 500]
+  H_R:
+    core: [0.02, 0.15]
+    tail: [0.01, 0.25]
+  dust_to_gas:
+    core: [0.001, 0.1]
+    tail: [0.0001, 0.2]
+  grainsize:
+    core: [1e-5, 1]
+    tail: [1e-6, 10]
+  graindens:
+    core: [1.0, 5.0]
+    tail: [0.5, 8.0]
+  beta_cool:
+    core: [0.5, 50]
+    tail: [0.1, 100]
+  J2_body1:
+    core: [0.0, 0.02]
+    tail: [0.0, 0.05]

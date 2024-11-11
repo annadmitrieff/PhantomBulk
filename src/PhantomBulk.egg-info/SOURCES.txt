@@ -1,0 +1,17 @@
+LICENSE
+README.md
+setup.py
+src/PhantomBulk/__init__.py
+src/PhantomBulk/config.py
+src/PhantomBulk/data_classes.py
+src/PhantomBulk/file_manager.py
+src/PhantomBulk/generators.py
+src/PhantomBulk/main.py
+src/PhantomBulk/submitter.py
+src/PhantomBulk/utils.py
+src/PhantomBulk.egg-info/PKG-INFO
+src/PhantomBulk.egg-info/SOURCES.txt
+src/PhantomBulk.egg-info/dependency_links.txt
+src/PhantomBulk.egg-info/entry_points.txt
+src/PhantomBulk.egg-info/requires.txt
+src/PhantomBulk.egg-info/top_level.txt
