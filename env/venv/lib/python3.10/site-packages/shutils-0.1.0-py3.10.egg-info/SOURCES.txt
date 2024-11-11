@@ -1,0 +1,15 @@
+README.md
+setup.cfg
+setup.py
+shutils/__init__.py
+shutils/connections.py
+shutils/runtime.py
+shutils/settings.py
+shutils.egg-info/PKG-INFO
+shutils.egg-info/SOURCES.txt
+shutils.egg-info/dependency_links.txt
+shutils.egg-info/entry_points.txt
+shutils.egg-info/requires.txt
+shutils.egg-info/top_level.txt
+shutils/os/__init__.py
+shutils/os/path.py

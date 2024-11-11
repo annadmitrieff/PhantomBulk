@@ -1,0 +1,2 @@
+[console_scripts]
+phantombulk = PhantomBulk.main:main
