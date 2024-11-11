@@ -8,11 +8,13 @@ import pandas as pd
 import sys
 from pathlib import Path
 import subprocess  # Needed for subprocess operations
+from dataclasses import dataclass, field, asdict
 
 from PhantomBulk.config import Config
 from PhantomBulk.generators import PhysicalPPDGenerator, PPDParameters
 from PhantomBulk.file_manager import PHANTOMFileManager
 from PhantomBulk.utils import sample_parameter
+
 
 def generate_phantom_input(
     params: PPDParameters,
@@ -21,6 +23,7 @@ def generate_phantom_input(
     file_manager: PHANTOMFileManager,
     config: Config
 ) -> bool:
+
     """
     Generate PHANTOM setup file, run phantomsetup, modify .in, and create submission script.
 
@@ -60,7 +63,7 @@ def generate_phantom_input(
 
     # Step 4: Run `phantomsetup` to generate `dustysgdisc.in`
     try:
-        # Run phantomsetup twice as per original script
+        # Run phantomsetup twice to add add'l values (e.g. oblateness calculations) that phantom auto-calculates
         subprocess.run([str(phantomsetup_exe), 'dustysgdisc'], cwd=output_dir, check=True)
         subprocess.run([str(phantomsetup_exe), 'dustysgdisc'], cwd=output_dir, check=True)
         logging.info(f"Ran 'phantomsetup' for simulation {sim_id}.")
@@ -122,13 +125,19 @@ def main():
     Main function to generate PPD simulations.
     """
     # Configure logging
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    logging.basicConfig(
+    level=logging.DEBUG, 
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("phantombulk_debug.log"),  # Log to a file
+        logging.StreamHandler()  # Also log to console
+    ])
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Generate Protoplanetary Disc Simulations")
 
     # Positional argument for number of simulations
-    parser.add_argument('n_sims', type=int, help='Number of simulations to generate')
+    parser.add_argument('-n', '--n_sims', type=int, help='Number of simulations to generate')
 
     # Optional arguments for flexibility
     parser.add_argument('-d', '--output_dir', type=str, default='$HOME/PhantomBulk/outputs/',
@@ -223,7 +232,7 @@ def main():
     # Save parameters to CSV
     if param_records:
         df = pd.DataFrame(param_records)
-        param_db_path = output_dir / 'parameter_database.csv'
+        param_db_path = output_dir / 'input_parameters.csv'
         try:
             df.to_csv(param_db_path, index=False)
             logging.info(f"Saved simulation parameters to '{param_db_path}'.")
@@ -260,14 +269,17 @@ def main():
         logging.error(f"Submission script '{submit_all_path}' not found.")
         sys.exit(1)
 
-    # Prompt the user to decide whether to submit all jobs
+    # Prompt the user to decide whether to submit all jobs (when uncommented)
     echo_output = f"""
-==============================================
+================================================================================================
 You have generated {n_sims} simulations in '{output_dir}'.
-Would you like to submit all jobs now?
 It's recommended to verify the '.setup' and '.in' files before submission.
-==============================================
+To submit all, navigate to {output_dir} and submit the script 'submit_all.sh' to your scheduler.
+================================================================================================
 """
+
+#Excluded: currently non-functional.
+'''
     print(echo_output)
 
     while True:
@@ -301,6 +313,7 @@ It's recommended to verify the '.setup' and '.in' files before submission.
             print("Please answer yes (y) or no (n).")
 
     sys.exit(0)
+'''
 
 if __name__ == "__main__":
     main()

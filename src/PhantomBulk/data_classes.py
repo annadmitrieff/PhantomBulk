@@ -18,6 +18,7 @@ class PPDParameters:
     accr1: float              # Stellar accretion radius
     J2_body1: float           # Stellar quadrupole moment
     disc_m: float             # Disc mass
+    Sigma0: float             # Surface density
     R_in: float               # Inner radius in AU
     R_out: float              # Outer radius in AU
     H_R: float                # Aspect ratio
