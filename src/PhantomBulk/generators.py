@@ -3,136 +3,519 @@
 import numpy as np
 import logging
 import traceback
-from typing import List, Tuple
-from .utils import sample_parameter
+from typing import List, Tuple, Dict, Optional
+from dataclasses import dataclass
 from .config import Config
-from .data_classes import PPDParameters, PlanetParameters
+from .data_classes import PPDParameters, PlanetParameters, SimulationConstraints
 
 class PhysicalPPDGenerator:
-    """Generate PPD parameters with physical correlations."""
+    """Generate physically self-consistent PPD parameters with advanced physics"""
 
     def __init__(self, config: Config):
-        """Initialize the generator with configuration parameters."""
+        """Initialize generator with configuration parameters"""
         self.config = config
-        np.random.seed(self.config.seed)
-        self.load_survey_distributions()
+        self.rng = np.random.RandomState(self.config.seed)
+        self._setup_constants()
+        self._load_observational_relations()
+        self.constraints = self.load_constraints_from_config()
 
-    def load_survey_distributions(self):
-        """Load  distributions from config."""
-        self.parameter_ranges = self.config.parameter_ranges
-
-    def compute_temperature_structure(self, stellar_mass: float) -> Tuple[float, float]:
-        """
-        Compute disc temperature structure.
-
-        Parameters:
-            stellar_mass (float): Stellar mass in solar masses.
-
-        Returns:
-            Tuple containing T0 (Kelvin) and qindex (power-law index).
-        """
-        # Temperature scaling with stellar luminosity
-        L_star = stellar_mass ** 3.5  # Approximate luminosity scaling: L \propto M_star ** 3.5
-        T0 = 280 * (L_star ** 0.25)  # Temperature at 1 AU: For T_sun, T0 = 280K
-        #qindex = np.random.normal(0.25, 0.75)
-        qindex = 0.5
-        return T0, qindex
-
-    def compute_disc_structure(
-        self, stellar_mass: float, T0: float, qindex: float
-    ) -> Tuple[float, float, float, float, float]:
-        """
-        Compute physically consistent disc structure.
-
-        Parameters:
-            stellar_mass (float): Stellar mass in solar masses.
-            T0 (float): Temperature at reference radius.
-            qindex (float): Temperature power-law index.
-
-        Returns:
-            Tuple containing disc_mass, R_out, R_in, Sigma0, pindex.
-        """
-        # Disc mass as a fraction of stellar mass
-        disc_mass = 0.01 * stellar_mass
-
-        # Outer radius sampled from parameter ranges
-        R_out = sample_parameter(
-            self.parameter_ranges['R_out']['core'],
-            self.parameter_ranges['R_out']['tail']
+    def load_constraints_from_config(self) -> SimulationConstraints:
+        """Load constraints from the configuration"""
+        c = self.config.constraints
+        constraints = SimulationConstraints(
+            min_star_mass=float(c.get('min_star_mass', 0.08)),
+            max_star_mass=float(c.get('max_star_mass', 2.5)),
+            min_disk_mass=float(c.get('min_disk_mass', 1e-4)),
+            max_disk_mass=float(c.get('max_disk_mass', 0.1)),
+            min_r_in=float(c.get('min_r_in', 0.01)),
+            max_r_out=float(c.get('max_r_out', 1000.0)),
+            min_aspect=float(c.get('min_aspect', 0.01)),
+            max_aspect=float(c.get('max_aspect', 0.25)),
+            min_dtg=float(c.get('min_dtg', 0.001)),
+            max_dtg=float(c.get('max_dtg', 0.1)),
+            min_grain=float(c.get('min_grain', 1e-5)),
+            max_grain=float(c.get('max_grain', 1.0)),
+            min_metallicity=float(c.get('min_metallicity', 0.1)),
+            max_metallicity=float(c.get('max_metallicity', 2.0)),
+            min_B_field=float(c.get('min_B_field', 1e-6)),
+            max_B_field=float(c.get('max_B_field', 1e-4))
         )
-        # Inner radius sampled from parameter ranges
-        R_in = sample_parameter(
-            self.parameter_ranges['R_in']['core'],
-            self.parameter_ranges['R_in']['tail']
+        return constraints
+
+    def _setup_constants(self):
+        """Physical constants in cgs units"""
+        self.G = 6.67430e-8             # Gravitational constant
+        self.k_B = 1.380649e-16         # Boltzmann constant
+        self.m_p = 1.672621898e-24      # Proton mass
+        self.sigma_sb = 5.670374419e-5  # Stefan-Boltzmann constant
+        self.M_sun = 1.989e33           # Solar mass
+        self.R_sun = 6.957e10           # Solar radius
+        self.L_sun = 3.828e33           # Solar luminosity
+        self.AU = 1.496e13              # Astronomical Unit
+        self.mu = 2.34                  # Mean molecular weight
+
+    def _load_observational_relations(self):
+        """Load empirical relations from observations"""
+        # From recent ALMA surveys and theoretical models
+        self.empirical_relations = {
+            'mdisk_mstar': {
+                'slope': 1.0,       # log(M_disk) vs log(M_star) slope
+                'scatter': 0.5,     # Natural logarithmic scatter
+                'intercept': -1.5   # Typical scaling
+            },
+            'rout_mstar': {
+                'slope': 38.0,      # AU per solar mass
+                'scatter': 10.0     # AU
+            },
+            'temperature': {
+                'q_range': (-0.6, -0.4),  # Radial temperature power law
+                'T_1AU': (200, 300)       # Temperature at 1 AU range
+            },
+            'metallicity': {
+                'mean': 1.0,        # Solar metallicity
+                'scatter': 0.2      # Log-normal scatter
+            },
+            'B_field_density': {
+                'slope': 0.5,       # B ∝ n_H^slope
+                'scatter': 0.2      # Log-normal scatter
+            }
+        }
+
+    def generate_single_ppd(self) -> PPDParameters:
+        """
+        Generate a single physically consistent PPD.
+        Returns:
+            PPDParameters: The generated PPD parameters.
+        """
+        params_dict = self.generate_parameters()
+        
+        # Compute Sigma0
+        Sigma0 = self.compute_Sigma0(params_dict['disc_m'], params_dict['R_in'], params_dict['R_out'], params_dict['pindex'])
+                
+        # Create PPDParameters instance
+        params = PPDParameters(
+            m1=params_dict['m1'],
+            accr1=params_dict['accr1'],
+            J2_body1=params_dict['J2_body1'],
+            disc_m=params_dict['disc_m'],
+            Sigma0=Sigma0,
+            R_in=params_dict['R_in'],
+            R_ref=params_dict['R_ref'],
+            R_out=params_dict['R_out'],
+            H_R=params_dict['H_R'],
+            pindex=params_dict['pindex'],
+            qindex=params_dict['qindex'],
+            dust_to_gas=params_dict['dust_to_gas'],
+            grainsize=params_dict['grainsize'],
+            graindens=params_dict['graindens'],
+            beta_cool=params_dict['beta_cool'],
+            planets=params_dict['planets']
         )
-        if R_in >= R_out:
-            raise ValueError(f"Invalid radii: R_in ({R_in}) must be less than R_out ({R_out}).")
+        return params
 
-        # Sample p-index from a distribution
-        # pindex = np.random.uniform(0.5, 1.5)
-        pindex = 1.0
-
-        # Reference radius for normalization
-        r0 = np.sqrt(R_in, R_out)
-
-        # Calculate Sigma0 based on disc_mass, R_in, R_out, and pindex
+    def compute_Sigma0(self, disc_m: float, R_in: float, R_out: float, pindex: float) -> float:
+        """Compute Sigma0 based on disc mass and radii"""
+        r0 = 1.0  # Reference radius in AU
         if pindex == 1.0:
-            # Special case where pindex equals 1
-            Sigma0 = disc_mass / (2 * np.pi * r0**2 * np.log(R_out / R_in)) # = disc mass / (area of circle with rad as geom mean of R_in and R_out * ln(R_out / R_in))
-        # else:
-            # General case (removed because pindex = 1)
-            # Sigma0 = (disc_mass * (2 - pindex) / (2 * np.pi * r0**2) /
-                    # (R_out**(2 - pindex) - R_in**(2 - pindex)))
-
-        return disc_mass, R_out, R_in, Sigma0, pindex
-
-
-    def compute_reference_radius(self, R_in: float, R_out: float, Sigma0: float, pindex: float) -> float:
-        """
-        Compute a reference radius (R_ref) for the disc.
-
-        Parameters:
-            R_in (float): Inner radius in AU.
-            R_out (float): Outer radius in AU.
-            Sigma0 (float): Surface density normalization in g/cm^2.
-            pindex (float): Surface density power-law index.
-
-        Returns:
-            float: Computed or selected R_ref.
-
-        """
-        if pindex != 1.0:
-            R_ref = ((Sigma0 * (2 - pindex)) / (np.pi * (R_out**(2 - pindex) - R_in**(2 - pindex)))) ** (1 / pindex)
+            Sigma0 = disc_m / (2 * np.pi * r0**2 * np.log(R_out / R_in))
         else:
-            R_ref = np.sqrt(R_in * R_out) # Ref radius as geometric mean; same as for sigma0 computation
+            Sigma0 = (disc_m * (2 - pindex) / (2 * np.pi * r0**2) /
+                      (R_out**(2 - pindex) - R_in**(2 - pindex)))
+        return Sigma0
 
-        # Ensure R_ref lies within valid bounds
-        R_ref = max(R_in, min(R_ref, R_out))
-        return R_ref
-
-    def compute_aspect_ratio(
-        self, T0: float, stellar_mass: float, R_ref: float = 1.0
-    ) -> float:
+    def generate_parameters(self) -> Dict:
         """
-        Compute aspect ratio H/R with physical dependencies.
+        Generate complete set of physically consistent disk parameters.
+        Returns dictionary of parameters in simulation units.
+        """
+        # Sample metallicity
+        Z = self._sample_metallicity()
 
-        Parameters:
-            T0 (float): Temperature at reference radius.
-            stellar_mass (float): Stellar mass in solar masses.
-            R_ref (float): Reference radius in AU.
+        # Sample cloud core properties
+        core_mass = self._sample_core_mass()
+        core_density = self._compute_core_density(core_mass)
+        B_field = self._compute_magnetic_field(core_density)
+        turbulence_alpha = self._sample_turbulence()
+        rotational_beta = self._sample_rotation()
+        mu = self._mass_to_flux_ratio(core_mass, B_field)
 
+        # Stellar mass after collapse
+        m_star = self._compute_stellar_mass(core_mass, mu)
+        self._last_mstar = m_star  # Store for disk fraction calculation
+
+        # Disk mass fraction influenced by magnetic braking and turbulence
+        disk_fraction = self._compute_disk_fraction(rotational_beta, mu, turbulence_alpha)
+        m_disk = disk_fraction * core_mass
+
+        # Apply constraints
+        m_star = np.clip(m_star, self.constraints.min_star_mass, self.constraints.max_star_mass)
+        m_disk = np.clip(m_disk, self.constraints.min_disk_mass, self.constraints.max_disk_mass)
+
+        # Compute disk radii
+        R_in, R_ref, R_out = self._compute_disk_radii(m_star, m_disk, rotational_beta, mu)
+
+        # Temperature profile considering external radiation
+        qindex, h_r, T_ref = self._compute_temperature_profile(m_star, R_ref, Z)
+
+        # Surface density profile
+        pindex = self._compute_surface_density(m_disk, R_in, R_out)
+
+        # Dust properties with metallicity effects
+        dtg, grain_size, grain_dens = self._compute_dust_properties(Z)
+
+        # Compute beta_cool
+        beta_cool = self._compute_beta_cool(T_ref, m_star, m_disk, R_ref, h_r)
+
+        # Accretion radius and oblateness
+        accr1 = self._compute_accretion_radius(m_star)
+        J2_body1 = 0.0
+
+        # Generate planets
+        planets = self.generate_planet_system(m_star, m_disk, R_in, R_out)
+
+        # Compile parameters
+        params = {
+            'm1': m_star,
+            'accr1': accr1,
+            'J2_body1': J2_body1,
+            'R_in': R_in,
+            'R_ref': R_ref,
+            'R_out': R_out,
+            'disc_m': m_disk,
+            'pindex': pindex,
+            'qindex': qindex,
+            'H_R': h_r,
+            'dust_to_gas': dtg,
+            'grainsize': grain_size,
+            'graindens': grain_dens,
+            'beta_cool': beta_cool,
+            'planets': planets
+        }
+
+        # Optionally compute Q_out? Nonessential
+        Q_out = self._compute_toomre_Q(params)
+        params['Q_out'] = Q_out  # Include in output for reference
+
+        return params
+
+    def _sample_metallicity(self) -> float:
+        """Sample metallicity relative to solar"""
+        Z = self.rng.lognormal(mean=np.log(self.empirical_relations['metallicity']['mean']),
+                               sigma=self.empirical_relations['metallicity']['scatter'])
+        Z = np.clip(Z, self.constraints.min_metallicity, self.constraints.max_metallicity)
+        return Z
+
+    def _sample_core_mass(self) -> float:
+        """
+        Sample core mass using an IMF-inspired distribution.
+        Returns mass in solar masses.
+        """
+        # Define mass ranges for different stellar types
+        mass_ranges = {
+            'brown_dwarf': (0.08, 0.15),    # Brown dwarf transition to very low mass
+            'low_mass': (0.15, 0.5),        # M dwarfs
+            'solar_type': (0.5, 2.0),       # K, G, and early F stars
+            'intermediate': (2.0, 2.5)      # Late A stars/Herbig Ae
+        }
+        
+        # Probability weights for each range (adjust these to match observed distributions)
+        weights = {
+            'brown_dwarf': 0.15,    # Lower probability for brown dwarfs
+            'low_mass': 0.45,       # Highest probability for low mass stars
+            'solar_type': 0.30,     # Moderate probability for solar-type
+            'intermediate': 0.10     # Lower probability for massive stars
+        }
+        
+        # First select which mass range we're sampling from
+        range_choice = self.rng.choice(list(weights.keys()), p=list(weights.values()))
+        min_mass, max_mass = mass_ranges[range_choice]
+        
+        print(f"\nMass sampling:")
+        print(f"Selected mass range: {range_choice}")
+        print(f"Mass range: {min_mass:.2f} - {max_mass:.2f} M_sun")
+        
+        # Sample mass using a combination of power-law and log-normal distribution
+        if range_choice == 'brown_dwarf':
+            # Use power law for brown dwarfs
+            alpha = -0.3  # Brown dwarf mass function slope
+            mass = ((max_mass**(alpha + 1) - min_mass**(alpha + 1)) * 
+                   self.rng.random() + min_mass**(alpha + 1))**(1/(alpha + 1))
+        
+        elif range_choice in ['low_mass', 'solar_type']:
+            # Log-normal distribution for low to solar mass stars
+            log_min = np.log10(min_mass)
+            log_max = np.log10(max_mass)
+            mu = (log_min + log_max) / 2
+            sigma = (log_max - log_min) / 4
+            
+            # Sample until we get a mass in the desired range
+            while True:
+                mass = 10**self.rng.normal(mu, sigma)
+                if min_mass <= mass <= max_mass:
+                    break
+        
+        else:  # intermediate mass
+            # Salpeter-like IMF for more massive stars
+            alpha = -2.35  # Salpeter IMF slope
+            mass = ((max_mass**(alpha + 1) - min_mass**(alpha + 1)) * 
+                   self.rng.random() + min_mass**(alpha + 1))**(1/(alpha + 1))
+        
+        print(f"Sampled initial mass: {mass:.3f} M_sun")
+        return mass
+
+    def _compute_core_density(self, core_mass: float) -> float:
+        """Compute core density assuming a fixed radius"""
+        core_radius = 0.1 * self.AU  # Fixed small radius in cm
+        volume = (4/3) * np.pi * core_radius**3
+        mass_cgs = core_mass * self.M_sun
+        density = mass_cgs / volume  # g/cm^3
+        return density
+
+    def _compute_magnetic_field(self, density: float) -> float:
+        """Compute magnetic field strength based on density"""
+        rel = self.empirical_relations['B_field_density']
+        log_B = rel['slope'] * np.log10(density) + self.rng.normal(0, rel['scatter'])
+        B_field = 10**log_B
+        B_field = np.clip(B_field, self.constraints.min_B_field, self.constraints.max_B_field)
+        return B_field
+
+    def _sample_turbulence(self) -> float:
+        """Sample turbulent support parameter alpha"""
+        alpha = 10**self.rng.normal(-2.0, 0.3)
+        return alpha
+
+    def _sample_rotation(self) -> float:
+        """Sample rotational energy ratio beta"""
+        # Typical values for molecular cloud cores are β ~ 0.02-0.1
+        # Using lognormal distribution centered around β ~ 0.04
+        beta = 10**self.rng.normal(-1.4, 0.3)  # This will give typical values around 0.02-0.1
+        return beta
+
+    def _mass_to_flux_ratio(self, core_mass: float, B_field: float) -> float:
+        """Compute mass-to-flux ratio mu"""
+        # Normalize to critical mass-to-flux ratio
+        mu = (core_mass / B_field) / 5.0  # Divided by 5.0 to bring into reasonable range
+        return np.clip(mu, 1.0, 10.0)  # Keep mu in physically reasonable range
+
+
+    def _compute_stellar_mass(self, core_mass: float, mu: float) -> float:
+        """
+        Compute stellar mass with improved physics for pre-stellar cores.
+        
+        Args:
+            core_mass: Initial core mass in solar masses
+            mu: Mass-to-flux ratio
+        
         Returns:
-            Aspect ratio H/R.
+            Final stellar mass in solar masses
         """
-        k_B = 1.380649e-16  # Boltzmann constant in erg/K
-        mu = 2.34           # Mean molecular weight for molecular H2
-        m_H = 1.6735575e-24 # Hydrogen mass in g
-        c_s = np.sqrt(k_B * T0 / (mu * m_H)) # soundspeed; contingent on gas temp + mean mol weight + hydrogen mass (ideal gas law)
-        Omega = np.sqrt(1.0 / (R_ref * 1.496e13)**3 * (6.67430e-8 * stellar_mass * 1.98847e33))  # rad/s
-        H = c_s / Omega  # cm; scale height
-        H_AU = H / 1.496e13
-        H_R = H_AU / R_ref
-        return H_R # height to radius ratio
+        # Base mass loss fraction depends on core mass
+        if core_mass < 0.5:
+            # Higher efficiency for low mass cores
+            base_loss = 0.2 + 0.1 * self.rng.random()
+        elif core_mass < 2.0:
+            # Moderate mass loss for solar-type stars
+            base_loss = 0.3 + 0.15 * self.rng.random()
+        else:
+            # Higher mass loss for more massive stars
+            base_loss = 0.4 + 0.2 * self.rng.random()
+            
+        # Magnetic effects on mass loss
+        # Stronger fields (lower mu) increase mass loss
+        mag_factor = 0.1 * np.exp(-mu/5)
+        
+        # Total mass loss fraction
+        mass_loss_fraction = min(0.9, base_loss + mag_factor)
+        
+        # Calculate final stellar mass
+        m_star = core_mass * (1 - mass_loss_fraction)
+        
+        # Ensure mass stays within physical limits
+        m_star = np.clip(m_star, self.constraints.min_star_mass, self.constraints.max_star_mass)
+        
+        print(f"Mass loss calculation:")
+        print(f"Initial core mass: {core_mass:.3f} M_sun")
+        print(f"Base mass loss fraction: {base_loss:.3f}")
+        print(f"Magnetic mass loss factor: {mag_factor:.3f}")
+        print(f"Total mass loss fraction: {mass_loss_fraction:.3f}")
+        print(f"Final stellar mass: {m_star:.3f} M_sun")
+        
+        return m_star
+    
+    def _compute_disk_fraction(self, beta: float, mu: float, alpha: float) -> float:
+            """
+            Compute disk mass fraction with improved mass dependence
+            """
+            # Base disk fraction from rotation
+            f_base = 0.1 * (beta / 0.02)**0.5
+            
+            # Magnetic braking reduces disk mass
+            f_mag = np.exp(-mu / 5)
+            
+            # Turbulence can enhance disk formation
+            f_turb = (alpha / 0.01)**0.2
+            
+            # Scale disk fraction with stellar mass
+            # Higher mass stars tend to have more massive disks
+            m_star_factor = (self._last_mstar / 0.5)**0.5 if hasattr(self, '_last_mstar') else 1.0
+            
+            disk_fraction = f_base * f_mag * f_turb * m_star_factor
+            disk_fraction = np.clip(disk_fraction, 0.01, 0.3)
+            
+            print(f"\nDisk fraction calculation:")
+            print(f"Base fraction: {f_base:.3f}")
+            print(f"Magnetic factor: {f_mag:.3f}")
+            print(f"Turbulence factor: {f_turb:.3f}")
+            print(f"Stellar mass factor: {m_star_factor:.3f}")
+            print(f"Final disk fraction: {disk_fraction:.3f}")
+            
+            return disk_fraction
+
+    def _compute_disk_radii(self, m_star: float, m_disk: float, beta: float, mu: float) -> Tuple[float, float, float]:
+        """Compute disk inner, reference, and outer radii with refined physics."""
+        # Inner radius using dust sublimation temperature with variable composition
+        T_sub = 1500  # K, average dust sublimation temperature
+        L_star = self._compute_stellar_luminosity(m_star)
+        R_in = np.sqrt(L_star / (16 * np.pi * self.sigma_sb * T_sub**4)) / self.AU
+        R_in = max(R_in, self.constraints.min_r_in)  # Enforce constraints
+
+        # Outer radius based on angular momentum and disk mass scaling
+        R_c = 2000 * beta * (m_star / 0.08)**0.5  # Rotational scaling
+        R_mass = 200 * (m_disk / 1e-4)**0.5  # Disk mass scaling
+        R_out = max(R_c, R_mass)
+
+        # Magnetic braking adjustment for outer radius
+        mag_factor = 0.5 * (1.0 + np.tanh((mu - 5.0) / 2.0))  # Smooth transition around mu=5
+        R_out *= mag_factor
+
+        # Add scatter to account for observational variability
+        scatter = self.rng.normal(1.0, 0.2)
+        R_out *= scatter
+
+        # Apply constraints to the outer radius
+        R_out = np.clip(R_out, max(50.0, 2.0 * R_in), self.constraints.max_r_out)
+
+        # Reference radius is geometric mean of inner and outer radii
+        R_ref = np.sqrt(R_in * R_out)
+        return R_in, R_ref, R_out
+
+    def _compute_stellar_luminosity(self, m_star: float) -> float:
+        """Compute pre-main sequence stellar luminosity using Baraffe models."""
+        # Based on Baraffe et al. (2015) models for 1 Myr old stars
+        if m_star < 0.1:
+            L_star = self.L_sun * (m_star / 0.1)**1.7  # Steeper relation for very low mass stars
+        else:
+            L_star = self.L_sun * (m_star)**3.5  # Standard PMS relation
+        return L_star
+
+    def _compute_temperature_profile(self, m_star: float, r_ref: float, Z: float) -> Tuple[float, float, float]:
+        """Compute temperature power law parameters with refined metallicity effects."""
+        # Radial temperature profile
+        temp_range = self.empirical_relations['temperature']
+        qindex = - self.rng.uniform(*temp_range['q_range'])
+
+        # Include external radiation and stellar luminosity
+        T_ext = 10  # K, background radiation temperature
+        L_star = self._compute_stellar_luminosity(m_star)
+        T_star = (L_star / (4 * np.pi * (r_ref * self.AU)**2 * self.sigma_sb))**0.25
+        T_ref = (T_star**4 + T_ext**4)**0.25
+
+        # Adjust temperature for metallicity
+        T_ref *= Z**0.05  # Slight effect on opacity
+
+        # Aspect ratio (H/R)
+        cs = np.sqrt(self.k_B * T_ref / (self.mu * self.m_p))
+        v_k = np.sqrt(self.G * m_star * self.M_sun / (r_ref * self.AU))
+        H_R = cs / v_k
+        H_R *= (1 + self._sample_turbulence())  # Turbulent pressure support
+        H_R = np.clip(H_R, self.constraints.min_aspect, self.constraints.max_aspect)
+        return qindex, H_R, T_ref
+
+
+    def _compute_surface_density(self, m_disk: float, r_in: float, r_out: float) -> float:
+        """Compute surface density power law index with observational constraints."""
+        # Empirical studies suggest surface density indices between 1.0 and 0.5
+        pindex = self.rng.uniform(1.0, 0.5)
+        return pindex
+
+
+    def _compute_dust_properties(self, Z: float) -> Tuple[float, float, float]:
+        """Compute dust properties with metallicity effects"""
+        # Dust-to-gas ratio scales with metallicity
+        base_dtg = 0.01  # ISM value
+        dtg = base_dtg * Z
+        dtg = np.clip(dtg, self.constraints.min_dtg, self.constraints.max_dtg)
+
+        # Grain size distribution with metallicity influence
+        a_min = 1e-5  # cm
+        a_max = 0.1 * Z  # Larger grains with higher metallicity
+        a_max = np.clip(a_max, self.constraints.min_grain, self.constraints.max_grain)
+        q = -3.5  # MRN slope
+
+        # Compute characteristic grain size from distribution
+        grainsize = np.exp(np.mean(np.log([a_min, a_max])))
+
+        # Grain density
+        grain_dens = 3.0  # g/cm^3, standard value
+        return dtg, grainsize, grain_dens
+
+    def _compute_accretion_radius(self, m_star: float) -> float:
+        """Compute accretion radius for the central star"""
+        R_star = self._compute_stellar_radius(m_star)
+        accr_radius = 5 * R_star / self.AU  # In AU
+        return accr_radius
+
+    def _compute_stellar_radius(self, m_star: float) -> float:
+        """Estimate stellar radius for pre-main-sequence stars"""
+        R_star = self.R_sun * (m_star / 1.0)**0.8
+        return R_star
+
+    def _compute_beta_cool(self, T_ref: float, m_star: float, m_disk: float, r_ref: float, H_R: float) -> float:
+        """Compute beta_cool parameter with refined opacity and optical depth."""
+        # Midplane temperature considering viscous and radiative contributions
+        alpha_visc = 0.01  # Viscous alpha
+        T_visc = (3 * self.G * m_star * self.M_sun * m_disk * self.M_sun * alpha_visc) / (8 * np.pi * self.sigma_sb * (r_ref * self.AU)**3)
+        T_mid = (T_ref**4 + T_visc)**0.25
+
+        # Compute sound speed
+        cs = np.sqrt(self.k_B * T_mid / (self.mu * self.m_p))
+
+        # Surface density from mass and radii
+        Sigma = self.compute_Sigma0(m_disk, r_ref, r_ref * 100, -1)
+
+        # Opacity laws (simplified Bell & Lin 1994)
+        if T_mid < 160:
+            kappa = 2e-4 * T_mid**2  # Ice grains
+        elif T_mid < 1500:
+            kappa = 2e16 * T_mid**(-7)  # Sublimation of ice
+        else:
+            kappa = 1e1  # Gas phase
+
+        tau = kappa * Sigma  # Optical depth
+
+        # Cooling time
+        if tau > 1:
+            t_cool = (3 * kappa * Sigma * cs**2) / (16 * self.sigma_sb * T_mid**4)
+        else:
+            t_cool = (3 * cs**2) / (16 * self.sigma_sb * T_mid**4 * kappa * Sigma)
+
+        # Orbital frequency
+        Omega = np.sqrt(self.G * m_star * self.M_sun / (r_ref * self.AU)**3)
+
+        # Compute beta_cool
+        beta_cool = t_cool * Omega
+        beta_cool = np.clip(beta_cool, 1.0, 50.0)  # Ensure valid range
+        print(f"Beta cool parameter: {beta_cool}")
+        return beta_cool
+
+    def _compute_toomre_Q(self, params: Dict) -> float:
+        """Compute Toomre Q parameter with refined surface density and sound speed."""
+        h_out = params['H_R'] * params['R_out'] * (params['R_out'] / params['R_ref'])**(params['qindex'] + 0.5)
+        sigma_out = params['disc_m'] * self.M_sun / (2 * np.pi * (params['R_out'] * self.AU)**2)
+        omega_out = np.sqrt(self.G * params['m1'] * self.M_sun / (params['R_out'] * self.AU)**3)
+        cs_out = h_out * omega_out
+        Q_out = cs_out * omega_out / (np.pi * self.G * sigma_out)
+        return Q_out
 
     def generate_planet_system(self, stellar_mass: float, disk_mass: float,
                                R_in: float, R_out: float) -> List[PlanetParameters]:
@@ -165,7 +548,7 @@ class PhysicalPPDGenerator:
             incl = min(incl, 15)  # inclination limit
 
             # Sample accretion radius and J2 moment
-            accr_radius = radius (mass / (3*stellar_mass)) ** (1/3) # R_H = a (M_p / 3M_s)^(1/3)
+            accr_radius = radius * (mass / (3*stellar_mass)) ** (1/3) # R_H = a (M_p / 3M_s)^(1/3)
 
             j2_moment = np.random.uniform(0.0, 0.05)    # J2 moment
 
@@ -179,165 +562,12 @@ class PhysicalPPDGenerator:
             planets.append(planet)
 
         return planets
-    def validate_parameters(self, params: PPDParameters) -> bool:
-        """
-        Validate generated PPD parameters.
-        Parameters:
-            params (PPDParameters): The generated PPD parameters.
-        Returns:
-            bool: True if valid, False otherwise.
-        """
-        if params.R_in >= params.R_out:
-            return False
-        if params.disc_m <= 0:
-            return False
-        if params.H_R <= 0 or params.H_R > 0.5:
-            return False
-        for planet in params.planets:
-            if planet.radius <= params.R_in or planet.radius >= params.R_out:
-                return False
-            if planet.mass <= 0:
-                return False
-        return True
-
-    def generate_single_ppd(self) -> PPDParameters:
-        """
-        Generate a single physically consistent PPD.
-
-        Returns:
-            PPDParameters: The generated PPD parameters.
-
-        Raises:
-            ValueError: If invalid parameters are generated after multiple attempts.
-        """
-        max_attempts = 10
-        for attempt in range(1, max_attempts + 1):
-            try:
-                # Sample stellar mass
-                stellar_mass = sample_parameter(
-                    self.parameter_ranges['m1']['core'],
-                    self.parameter_ranges['m1']['tail']
-                )
-                logging.debug(f"Attempt {attempt}: Generated stellar_mass = {stellar_mass} (type: {type(stellar_mass)})")
-
-                # Compute temperature structure
-                T0, qindex = self.compute_temperature_structure(stellar_mass)
-                logging.debug(f"Attempt {attempt}: Computed temperature structure: T0={T0}, qindex={qindex} (types: T0={type(T0)}, qindex={type(qindex)})")
-
-                # Compute disc structure
-                disc_mass, R_out, R_in, Sigma0, pindex = self.compute_disc_structure(stellar_mass, T0, qindex)
-                logging.debug(f"Attempt {attempt}: Computed disc structure: disc_mass={disc_mass}, R_out={R_out}, R_in={R_in}, Sigma0={Sigma0}, pindex={pindex} (types: disc_mass={type(disc_mass)}, R_out={type(R_out)}, R_in={type(R_in)}, Sigma0={type(Sigma0)}, pindex={type(pindex)})")
-
-                # Compute reference radius
-                R_ref = self.compute_reference_radius(R_in, R_out, Sigma0, pindex)
-                logging.debug(f"Attempt {attempt}: Computed R_ref = {R_ref}")
-
-                # Compute aspect ratio
-                H_R = self.compute_aspect_ratio(T0, stellar_mass)
-                logging.debug(f"Attempt {attempt}: Computed aspect ratio H_R={H_R} (type: {type(H_R)})")
-
-                # Sample additional parameters
-                accr1 = float(R_in - 0.01)
-                logging.debug(f"Attempt {attempt}: Sampled accr1 = {accr1} (type: {type(accr1)})")
-
-                J2_body1 = sample_parameter(
-                    self.parameter_ranges['J2_body1']['core'],
-                    self.parameter_ranges['J2_body1']['tail']
-                )
-                logging.debug(f"Attempt {attempt}: Sampled J2_body1 = {J2_body1} (type: {type(J2_body1)})")
-
-                dust_to_gas = sample_parameter(
-                    self.parameter_ranges['dust_to_gas']['core'],
-                    self.parameter_ranges['dust_to_gas']['tail']
-                )
-                logging.debug(f"Attempt {attempt}: Sampled dust_to_gas = {dust_to_gas} (type: {type(dust_to_gas)})")
-
-                grainsize = sample_parameter(
-                    self.parameter_ranges['grainsize']['core'],
-                    self.parameter_ranges['grainsize']['tail']
-                )
-                logging.debug(f"Attempt {attempt}: Sampled grainsize = {grainsize} (type: {type(grainsize)})")
-
-                graindens = sample_parameter(
-                    self.parameter_ranges['graindens']['core'],
-                    self.parameter_ranges['graindens']['tail']
-                )
-                logging.debug(f"Attempt {attempt}: Sampled graindens = {graindens} (type: {type(graindens)})")
-
-                beta_cool = sample_parameter(
-                    self.parameter_ranges['beta_cool']['core'],
-                    self.parameter_ranges['beta_cool']['tail']
-                )
-                logging.debug(f"Attempt {attempt}: Sampled beta_cool = {beta_cool} (type: {type(beta_cool)})")
-
-                # Generate planetary system
-                planets = self.generate_planet_system(stellar_mass, disc_mass, R_in, R_out)
-                logging.debug(f"Attempt {attempt}: Generated {len(planets)} planets (type: {type(planets)})")
-
-                # Create PPDParameters instance with all required fields
-                params = PPDParameters(
-                    m1=stellar_mass,
-                    accr1=accr1,
-                    J2_body1=J2_body1,
-                    disc_m=disc_mass,
-                    Sigma0=Sigma0,
-                    R_in=R_in,
-                    R_ref=R_ref,
-                    R_out=R_out,
-                    H_R=H_R,
-                    pindex=pindex,
-                    qindex=qindex,
-                    dust_to_gas=dust_to_gas,
-                    grainsize=grainsize,
-                    graindens=graindens,
-                    beta_cool=beta_cool,
-                    T0=T0,
-                    planets=planets
-                )
-                logging.debug(f"Attempt {attempt}: Created PPDParameters: {params}")
-
-                # **Add Assertions to Ensure Correct Types**
-                assert isinstance(params.m1, float), f"m1 must be float, got {type(params.m1)}"
-                assert isinstance(params.accr1, float), f"accr1 must be float, got {type(params.accr1)}"
-                assert isinstance(params.J2_body1, float), f"J2_body1 must be float, got {type(params.J2_body1)}"
-                assert isinstance(params.disc_m, float), f"disc_m must be float, got {type(params.disc_m)}"
-                assert isinstance(params.Sigma0, float), f"Sigma0 must be float, got {type(params.Sigma0)}"
-                assert isinstance(params.R_in, float), f"R_in must be float, got {type(params.R_in)}"
-                assert isinstance(params.R_ref, float), f"R_ref must be float, got {type(params.R_out)}"
-                assert isinstance(params.R_out, float), f"R_out must be float, got {type(params.R_out)}"
-                assert isinstance(params.H_R, float), f"H_R must be float, got {type(params.H_R)}"
-                assert isinstance(params.pindex, float), f"pindex must be float, got {type(params.pindex)}"
-                assert isinstance(params.qindex, float), f"qindex must be float, got {type(params.qindex)}"
-                assert isinstance(params.dust_to_gas, float), f"dust_to_gas must be float, got {type(params.dust_to_gas)}"
-                assert isinstance(params.grainsize, float), f"grainsize must be float, got {type(params.grainsize)}"
-                assert isinstance(params.graindens, float), f"graindens must be float, got {type(params.graindens)}"
-                assert isinstance(params.beta_cool, float), f"beta_cool must be float, got {type(params.beta_cool)}"
-                assert isinstance(params.T0, float), f"T0 must be float, got {type(params.T0)}"
-                assert isinstance(params.planets, list), f"planets must be a list, got {type(params.planets)}"
-
-                # Validate parameters
-                if self.validate_parameters(params):
-                    logging.debug(f"Attempt {attempt}: Parameters validated successfully.")
-                    return params
-                else:
-                    logging.warning(f"Attempt {attempt}: Parameters failed validation. Regenerating.")
-            except AssertionError as e:
-                logging.error(f"Attempt {attempt}: Assertion error during PPD generation: {e}")
-                continue
-            except Exception as e:
-                logging.error(f"Attempt {attempt}: Error generating PPD: {e}")
-                logging.error(traceback.format_exc())
-                continue
-
-        raise ValueError("Failed to generate a valid PPD after multiple attempts.")
 
     def generate_parameter_set(self, n_discs: int) -> List[PPDParameters]:
         """
         Generate parameters for multiple discs.
-
         Parameters:
             n_discs (int): Number of discs to generate.
-
         Returns:
             List of PPDParameters.
         """

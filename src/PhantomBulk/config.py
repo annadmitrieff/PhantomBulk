@@ -32,16 +32,16 @@ class Config:
         self.OUTPUT_DIR = Path(os.path.expandvars(cfg.get('OUTPUT_DIR', '$HOME/PhantomBulk/outputs/'))).expanduser()
         self.log_level = cfg.get('log_level', 'INFO')
         self.seed = int(cfg.get('seed', 42))
-        self.parameter_ranges = cfg.get('parameter_ranges', {})
         self.MCFOST_EXEC = Path(os.path.expandvars(cfg.get('MCFOST_EXEC', ''))).expanduser()
         self.LD_LINUX = Path(os.path.expandvars(cfg.get('LD_LINUX', ''))).expanduser()
 
-        # Convert all parameter ranges from strings to floats
-        for param, ranges in self.parameter_ranges.items():
-            for range_type in ['core', 'tail']:
-                # Check if elements are strings and convert to floats
-                if isinstance(ranges[range_type][0], str):
-                    self.parameter_ranges[param][range_type] = [float(x) for x in ranges[range_type]]
+        # Load constraints
+        self.constraints = cfg.get('constraints', {})
+
+        # Convert all constraints from strings to floats
+        for constraint in self.constraints.items():
+            if isinstance(constraint, str):
+                self.constraints[constraint] = [float(x) for x in constraints[constraint]]
 
         # Logging for debugging purposes
         logging.debug(f"CPUS_PER_TASK: {self.CPUS_PER_TASK} (type: {type(self.CPUS_PER_TASK)})")
@@ -54,6 +54,5 @@ class Config:
             path = getattr(self, attr)
             if not path.exists():
                 logging.error(f"The path for '{attr}' does not exist: {path}")
-                raise FileNotFoundError(f"The path for '{attr}' does not exist: {path}")
             else:
                 logging.debug(f"Verified '{attr}' exists at: {path}")

@@ -29,5 +29,20 @@ class PPDParameters:
     grainsize: float          # Grain size in cm
     graindens: float          # Grain density in g/cm^3
     beta_cool: float          # Cooling parameter
-    T0: float                 # Temperature at reference radius
     planets: List[PlanetParameters] = field(default_factory=list)  # List of planets
+
+@dataclass
+class SimulationConstraints:
+    """Constraints from observational data and physical limits"""
+    min_star_mass: float = 0.08  # Brown dwarf limit (M_sun)
+    max_star_mass: float = 8.0   # Herbig Ae/Be limit (M_sun)
+    min_disk_mass: float = 1e-4  # Minimum detectable disk mass (M_sun)
+    max_disk_mass: float = 0.1   # Gravitational stability limit
+    min_r_in: float = 0.01        # Dust sublimation radius (AU)
+    max_r_out: float = 1000.0     # Typical outer disk limit (AU)
+    min_aspect: float = 0.01      # Minimum stable H/R
+    max_aspect: float = 0.25      # Maximum physical H/R
+    min_dtg: float = 0.001         # Depleted dust-to-gas
+    max_dtg: float = 0.1           # Enhanced dust-to-gas
+    min_grain: float = 1e-5        # Minimum grain size (cm)
+    max_grain: float = 1.0         # Maximum grain size (cm)

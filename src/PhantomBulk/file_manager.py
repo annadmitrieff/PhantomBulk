@@ -117,9 +117,8 @@ class PHANTOMFileManager:
             "grainsize": params.grainsize,
             "graindens": params.graindens,
             "NUM_PLANETS": num_planets,
-            "PLANET_CONFIGURATIONS": planet_configurations
-            #"beta_cool": params.beta_cool,
-            #"T0": params.T0
+            "PLANET_CONFIGURATIONS": planet_configurations,
+            "beta_cool": params.beta_cool,
         }
 
         # Step 5: Replace each placeholder with actual parameter values
@@ -174,8 +173,8 @@ J2_body{i} =       {planet.j2_moment:.3f}    ! J2 moment (oblateness)
 
         # Define patterns and replacements
         replacements = {
-            r'^\s*beta_cool\s*=\s*\d+\.\d+\s*!.*$': f"      beta_cool = {params.beta_cool:.3f}    ! beta factor in Gammie (2001) cooling",
-            r'^\s*Tfloor\s*=\s*\d+\.\d+\s*!.*$': f"     Tfloor = {params.T0:.3f}    ! Temperature at 1 AU"
+            # r'^\s*beta_cool\s*=\s*\d+\.\d+\s*!.*$': f"      beta_cool = {params.beta_cool:.3f}    ! beta factor in Gammie (2001) cooling" #,
+            # r'^\s*Tfloor\s*=\s*\d+\.\d+\s*!.*$': f"     Tfloor = {params.T0:.3f}    ! Temperature at 1 AU"
         }
 
         # Perform replacements using regex

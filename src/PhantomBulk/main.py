@@ -13,8 +13,6 @@ from dataclasses import dataclass, field, asdict
 from PhantomBulk.config import Config
 from PhantomBulk.generators import PhysicalPPDGenerator, PPDParameters
 from PhantomBulk.file_manager import PHANTOMFileManager
-from PhantomBulk.utils import sample_parameter
-
 
 def generate_phantom_input(
     params: PPDParameters,

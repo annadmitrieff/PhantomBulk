@@ -37,38 +37,26 @@ log_level: "INFO"
 # Random Seed for Reproducibility
 seed: 42
 
-# Parameter Ranges
-parameter_ranges:
-  m1:
-    core: [0.08, 4.0]
-    tail: [0.05, 7.0]
-  accr1: # placeholder range; this is *always* R_in - 0.01
-    core: [0.02, 0.09]
-    tail: [0.01, 0.1]
-  disc_m_fraction:
-    core: [0.001, 0.2]
-    tail: [0.0005, 0.3]
-  R_in:
-    core: [0.03,0.1]
-    tail: [0.02,0.2]
-  R_out:
-    core: [100, 300]
-    tail: [50, 500]
-  H_R:
-    core: [0.02, 0.15]
-    tail: [0.01, 0.25]
-  dust_to_gas:
-    core: [0.001, 0.1]
-    tail: [0.0001, 0.2]
-  grainsize:
-    core: [1e-5, 1]
-    tail: [1e-6, 10]
-  graindens:
-    core: [1.0, 5.0]
-    tail: [0.5, 8.0]
-  beta_cool:
-    core: [0.5, 50]
-    tail: [0.1, 100]
-  J2_body1:
-    core: [0.0, 0.02]
-    tail: [0.0, 0.05]
+# Constraints
+constraints:
+  min_star_mass: 0.08    # Brown dwarf limit
+  max_star_mass: 2.5     # Typical T Tauri limit
+  min_disk_mass: 0.0001  # Minimum detectable disk mass
+  max_disk_mass: 0.1     # Gravitational stability limit
+  min_r_in: 0.01         # Dust sublimation radius in AU
+  max_r_out: 1000.0      # Typical outer disk limit in AU
+  min_aspect: 0.01       # Minimum stable H/R
+  max_aspect: 0.25       # Maximum physical H/R
+  min_dtg: 0.001         # Depleted dust-to-gas
+  max_dtg: 0.1           # Enhanced dust-to-gas
+  min_grain: 1e-5        # Minimum grain size (cm)
+  max_grain: 1.0         # Maximum grain size (cm)
+  min_metallicity: 0.1   # Minimum metallicity relative to solar
+  max_metallicity: 2.0   # Maximum metallicity relative to solar
+  min_B_field: 1e-6      # Minimum magnetic field strength in Gauss
+  max_B_field: 1e-4      # Maximum magnetic field strength in Gauss
+
+# Additional Paths for Post-processing
+# These are optional; MCFOST is not installed as a module on my HPC and thus warrants these workarounds... include as you see fit
+MCFOST_EXEC: "~/Software/mcfost"  # Path to MCFOST executable
+LD_LINUX: "~/local/glibc-2.34/lib/ld-linux-x86-64.so.2"  # Path to LD Linux
