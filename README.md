@@ -185,5 +185,3 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 ## Contact
 
 For any questions or support, please contact me by [email](mailto:annadmitrieff@uga.edu)!
-```
-
